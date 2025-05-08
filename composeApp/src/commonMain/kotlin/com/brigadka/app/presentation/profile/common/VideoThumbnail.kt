@@ -1,0 +1,99 @@
+package com.brigadka.app.presentation.profile.common
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import com.brigadka.app.data.api.models.MediaItem
+import com.brigadka.app.presentation.common.NetworkImage
+
+
+@Composable
+fun VideoThumbnail(
+    mediaItem: MediaItem?,
+    isUploading: Boolean = false,
+    onRemove: (() -> Unit)? = null,
+    onError: ((String) -> Unit)? = null,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(8.dp))
+    ) {
+        if (isUploading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(40.dp),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        } else {
+            NetworkImage(
+                url = mediaItem?.thumbnail_url ?: "",
+                contentDescription = "Video thumbnail",
+                onError = { error ->
+                    onError?.invoke("Failed to get video thumbnail: $error")
+                },
+                modifier = Modifier.fillMaxSize(),
+                fallback = {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {}
+                },
+            )
+        }
+
+        // Play icon overlay
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlayArrow,
+                contentDescription = "Play video",
+                tint = MaterialTheme.colorScheme.surface,
+                modifier = Modifier.size(40.dp)
+            )
+        }
+
+        // Remove button
+        if (onRemove != null) {
+            IconButton(
+                onClick = { onRemove.invoke() },
+                modifier = Modifier.align(Alignment.TopEnd)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Remove Video",
+                    tint = MaterialTheme.colorScheme.surfaceDim
+                )
+            }
+        }
+
+    }
+}

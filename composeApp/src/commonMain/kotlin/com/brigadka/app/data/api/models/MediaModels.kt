@@ -1,14 +1,10 @@
 package com.brigadka.app.data.api.models
 
-data class Media(
+import kotlinx.serialization.Serializable
+
+@Serializable
+data class MediaItem(
     val id: Int,
-    val profile_id: Int,
-    val role: String,
-    val type: String,
-    val uploaded_at: String,
+    val thumbnail_url: String,
     val url: String
 )
-
-data class MediaListResponse(val media: List<Media>)
-
-data class MediaResponse(val media: Media)

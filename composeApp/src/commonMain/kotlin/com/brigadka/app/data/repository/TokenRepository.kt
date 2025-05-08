@@ -1,10 +1,8 @@
-package com.brigadka.app.data.storage
+package com.brigadka.app.data.repository
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 import com.russhwolf.settings.Settings
-import com.russhwolf.settings.contains
-import com.russhwolf.settings.get
 import com.russhwolf.settings.set
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,13 +14,13 @@ data class Token(
     val refreshToken: String? = null,
 )
 
-interface TokenStorage {
+interface TokenRepository {
     val token: Flow<Token>
     suspend fun saveToken(token: Token)
     suspend fun clearToken()
 }
 
-class TokenStorageImpl(private val settings: Settings) : TokenStorage {
+class TokenRepositoryImpl(private val settings: Settings) : TokenRepository {
     private val json = Json { ignoreUnknownKeys = true }
     private val tokenKey = "auth_token"
     private val _token = MutableStateFlow(getStoredToken())
@@ -53,5 +51,3 @@ class TokenStorageImpl(private val settings: Settings) : TokenStorage {
         }
     }
 }
-
-expect fun createTokenStorage(context: Any? = null): TokenStorage

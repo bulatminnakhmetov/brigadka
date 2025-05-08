@@ -5,7 +5,7 @@ import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
-import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.Value
 import com.brigadka.app.data.repository.AuthRepository
 import com.brigadka.app.presentation.auth.login.LoginComponent
@@ -37,7 +37,7 @@ class AuthComponent(
         is Configuration.Login -> Child.Login(
             LoginComponent(
                 componentContext = componentContext,
-                onRegisterClick = { navigation.push(Configuration.Register) },
+                navigateToRegister = { navigation.pushNew(Configuration.Register) },
                 onLoginSuccess = { token -> onAuthSuccess(token) },
                 authRepository = authRepository
             )
@@ -45,7 +45,7 @@ class AuthComponent(
         is Configuration.Register -> Child.Register(
             RegisterComponent(
                 componentContext = componentContext,
-                onBackClick = { navigation.pop() },
+                onBackClickCallback = { navigation.pop() },
                 onRegisterSuccess = { token -> onAuthSuccess(token) },
                 authRepository = authRepository
             )

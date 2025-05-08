@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 class LoginComponent(
     componentContext: ComponentContext,
-    private val onRegisterClick: () -> Unit,
+    private val navigateToRegister: () -> Unit,
     private val onLoginSuccess: (String) -> Unit,
     private val authRepository: AuthRepository
 ) : ComponentContext by componentContext {
@@ -66,7 +66,7 @@ class LoginComponent(
     }
 
     fun onRegisterClick() {
-        onRegisterClick()
+        navigateToRegister()
     }
 
     private fun validateInput(): Boolean {

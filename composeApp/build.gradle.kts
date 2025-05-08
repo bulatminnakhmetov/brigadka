@@ -41,7 +41,7 @@ kotlin {
         commonMain.dependencies {
             implementation(compose.runtime)
             implementation(compose.foundation)
-            implementation(compose.material)
+            implementation(compose.material3)
             implementation(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
@@ -56,7 +56,9 @@ kotlin {
             implementation(libs.decompose)
             implementation(libs.koin.core)
             implementation(libs.multiplatform.settings)
-            implementation(libs.extensions.compose.jetbrains)
+            implementation(libs.decompose.extensions.compose)
+            implementation(libs.kotlinx.datetime)
+            implementation(libs.kamel.image.default)
         }
     }
 }
@@ -64,6 +66,10 @@ kotlin {
 android {
     namespace = "com.brigadka.app"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         applicationId = "com.brigadka.app"
@@ -78,8 +84,13 @@ android {
         }
     }
     buildTypes {
-        getByName("release") {
+        release {
             isMinifyEnabled = false
+            buildConfigField("String", "BASE_URL","\"https://api.brigadka.dev\"")
+        }
+
+        debug {
+            buildConfigField("String", "BASE_URL", "\"http://10.0.2.2:8080/api\"")
         }
     }
     compileOptions {
@@ -89,6 +100,7 @@ android {
 }
 
 dependencies {
+    implementation(libs.androidx.material3.android)
     debugImplementation(compose.uiTooling)
 }
 

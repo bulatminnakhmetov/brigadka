@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 
 class RegisterComponent(
     componentContext: ComponentContext,
-    private val onBackClick: () -> Unit,
+    private val onBackClickCallback: () -> Unit,
     private val onRegisterSuccess: (String) -> Unit,
     private val authRepository: AuthRepository
 ) : ComponentContext by componentContext {
@@ -39,24 +39,6 @@ class RegisterComponent(
         _state.update { it.copy(password = password) }
     }
 
-    fun onFullNameChanged(fullName: String) {
-        _state.update { it.copy(fullName = fullName) }
-    }
-
-    fun onAgeChanged(age: String) {
-        val ageInt = age.toIntOrNull()
-        _state.update { it.copy(age = ageInt) }
-    }
-
-    fun onCityIdChanged(cityId: String) {
-        val cityIdInt = cityId.toIntOrNull()
-        _state.update { it.copy(cityId = cityIdInt) }
-    }
-
-    fun onGenderChanged(gender: String) {
-        _state.update { it.copy(gender = gender) }
-    }
-
     fun onRegisterClick() {
         if (!validateInput()) return
 
@@ -66,11 +48,7 @@ class RegisterComponent(
             try {
                 val result = authRepository.register(
                     email = _state.value.email,
-                    password = _state.value.password,
-                    fullName = _state.value.fullName,
-                    age = _state.value.age ?: 0,
-                    cityId = _state.value.cityId ?: 0,
-                    gender = _state.value.gender
+                    password = _state.value.password
                 )
                 _state.update { it.copy(isLoading = false) }
                 result.token?.let { token -> onRegisterSuccess(token) }
@@ -86,7 +64,7 @@ class RegisterComponent(
     }
 
     fun onBackClick() {
-        onBackClick()
+        onBackClickCallback()
     }
 
     private fun validateInput(): Boolean {
@@ -98,49 +76,26 @@ class RegisterComponent(
 
         val passwordError = when {
             _state.value.password.isBlank() -> "Password cannot be empty"
-            _state.value.password.length < 6 -> "Password must be at least 6 characters"
+            _state.value.password.length < 8 -> "Password must be at least 8 characters"
             else -> null
         }
-
-        val fullNameError = if (_state.value.fullName.isBlank()) "Full name cannot be empty" else null
-        val ageError = when (_state.value.age) {
-            null -> "Age must be at least 18"
-            in 0..17 -> "Age must be at least 18"
-            else -> null
-        }
-        val cityIdError = if (_state.value.cityId == null) "City must be selected" else null
-        val genderError = if (_state.value.gender.isBlank()) "Gender must be selected" else null
 
         _state.update {
             it.copy(
                 emailError = emailError,
                 passwordError = passwordError,
-                fullNameError = fullNameError,
-                ageError = ageError,
-                cityIdError = cityIdError,
-                genderError = genderError
             )
         }
 
-        return emailError == null && passwordError == null &&
-                fullNameError == null && ageError == null &&
-                cityIdError == null && genderError == null
+        return emailError == null && passwordError == null
     }
 
     data class RegisterState(
         val email: String = "",
         val password: String = "",
-        val fullName: String = "",
-        val age: Int? = null,
-        val cityId: Int? = null,
-        val gender: String = "",
-        val emailError: String? = null,
-        val passwordError: String? = null,
-        val fullNameError: String? = null,
-        val ageError: String? = null,
-        val cityIdError: String? = null,
-        val genderError: String? = null,
         val isLoading: Boolean = false,
-        val error: String? = null
+        val error: String? = null,
+        val emailError: String? = null,
+        val passwordError: String? = null
     )
 }
