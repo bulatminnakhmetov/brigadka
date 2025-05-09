@@ -1,26 +1,218 @@
 package com.brigadka.app.presentation.search
 
 import com.arkivanov.decompose.ComponentContext
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.update
+import com.brigadka.app.data.api.models.City
+import com.brigadka.app.data.api.models.StringItem
+import com.brigadka.app.data.repository.ProfileRepository
+import com.brigadka.app.data.repository.SearchResult
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 
 class SearchComponent(
-    componentContext: ComponentContext
+    componentContext: ComponentContext,
+    private val profileRepository: ProfileRepository,
 ) : ComponentContext by componentContext {
 
-    private val _state = MutableStateFlow(SearchState())
-    val state: StateFlow<SearchState> = _state.asStateFlow()
+    private val _state = MutableValue(SearchState())
+    val state: Value<SearchState> get() = _state
 
-    // Stub implementation
-    fun search(query: String) {
-        // Stub: Would perform search
+    private val scope = CoroutineScope(Dispatchers.Main)
+    private var searchJob: Job? = null
+
+    init {
+        loadReferenceData()
+        performSearch()
     }
 
-    data class SearchState(
-        val isLoading: Boolean = false,
-        val query: String = "",
-        val results: List<String> = listOf("Sample Result 1", "Sample Result 2"),
-        val error: String? = null
-    )
+    private fun loadReferenceData() {
+        scope.launch {
+            try {
+                val cities = profileRepository.getCities()
+                val genders = profileRepository.getGenders()
+                val goals = profileRepository.getImprovGoals()
+                val styles = profileRepository.getImprovStyles()
+
+                _state.update { it.copy(
+                    cities = cities,
+                    genderFilter = genders.toOptions(),
+                    goalFilter = goals.toOptions(),
+                    improvStyleFilter = styles.toOptions(),
+                    isLoading = false
+                ) }
+            } catch (e: Exception) {
+                _state.update { it.copy(
+                    error = "Failed to load reference data", // TODO: gracefully degrade
+                    isLoading = false
+                ) }
+            }
+        }
+    }
+
+    fun performSearch() {
+        val currentState = _state.value
+
+        // Cancel previous search if still running
+        searchJob?.cancel()
+
+        _state.update { it.copy(isLoading = true, error = null) }
+
+        searchJob = scope.launch {
+            try {
+                val result = profileRepository.searchProfiles(
+                    fullName = currentState.nameFilter,
+                    ageMin = currentState.minAgeFilter,
+                    ageMax = currentState.maxAgeFilter,
+                    cityId = currentState.selectedCityID,
+                    genders = currentState.genderFilter.mapNotNull { if (it.isSelected) it.id else null },
+                    goals = currentState.goalFilter.mapNotNull { if (it.isSelected) it.id else null },
+                    improvStyles = currentState.improvStyleFilter.mapNotNull { if (it.isSelected) it.id else null },
+                    lookingForTeam = if (currentState.lookingForTeamFilter) true else null,
+                    hasAvatar = if (currentState.hasAvatarFilter) true else null,
+                    hasVideo = if (currentState.hasVideoFilter) true else null,
+                    page = currentState.currentPage,
+                    pageSize = currentState.pageSize
+                )
+
+                _state.update { it.copy(
+                    searchResult = result,
+                    isLoading = false
+                ) }
+            } catch (e: Exception) {
+                _state.update { it.copy(
+                    error = "Search failed: ${e.message}",
+                    isLoading = false
+                ) }
+            }
+        }
+    }
+
+    fun updateNameFilter(name: String) {
+        _state.update { it.copy(nameFilter = name) }
+    }
+
+    fun updateAgeRange(min: Int?, max: Int?) {
+        _state.update { it.copy(
+            minAgeFilter = min,
+            maxAgeFilter = max
+        ) }
+    }
+
+    fun updateCityFilter(cityId: Int?) {
+        _state.update { it.copy(selectedCityID = cityId) }
+    }
+
+    fun toggleGender(gender: String) {
+        _state.update { it.copy(genderFilter = it.genderFilter.toggle(gender)) }
+    }
+
+    fun toggleGoal(goal: String) {
+        _state.update { it.copy(goalFilter = it.goalFilter.toggle(goal)) }
+    }
+
+    fun toggleImprovStyle(style: String) {
+        _state.update {it.copy(improvStyleFilter = it.improvStyleFilter.toggle(style))}
+    }
+
+    fun toggleLookingForTeam() {
+        _state.update { it.copy(lookingForTeamFilter = !it.lookingForTeamFilter) }
+    }
+
+    fun toggleHasAvatar() {
+        _state.update { it.copy(hasAvatarFilter = !it.hasAvatarFilter) }
+    }
+
+    fun toggleHasVideo() {
+        _state.update { it.copy(hasVideoFilter = !it.hasVideoFilter) }
+    }
+
+    fun nextPage() {
+        val currentResults = _state.value.searchResult
+        if (currentResults != null &&
+            currentResults.page < (currentResults.totalCount / currentResults.pageSize) + 1) {
+            _state.update { it.copy(currentPage = it.currentPage + 1) }
+            performSearch()
+        }
+    }
+
+    fun previousPage() {
+        if (_state.value.currentPage > 1) {
+            _state.update { it.copy(currentPage = it.currentPage - 1) }
+            performSearch()
+        }
+    }
+
+    fun resetFilters() {
+        _state.update {
+            SearchState(
+                cities = it.cities,
+                genderFilter = it.genderFilter.reset(),
+                goalFilter = it.goalFilter.reset(),
+                improvStyleFilter = it.improvStyleFilter.reset(),
+            )
+        }
+        performSearch()
+    }
 }
+
+fun List<Option>.toggle(
+    optionId: String
+): List<Option> {
+    return map { option ->
+        if (option.id == optionId) {
+            option.copy(isSelected = !option.isSelected)
+        } else {
+            option
+        }
+    }
+}
+
+fun List<Option>.reset(): List<Option> {
+    return map { option -> option.copy(isSelected = false) }
+}
+
+fun List<StringItem>.toOptions(): List<Option> {
+    return map { item -> Option(id = item.code, label = item.label, isSelected = false) }
+}
+
+data class Option (
+    val id: String,
+    val label: String,
+    val isSelected: Boolean,
+)
+
+data class SearchState(
+    // Reference data
+    val cities: List<City> = emptyList(),
+
+    // Filter values
+    val nameFilter: String? = null,
+
+    val minAgeFilter: Int? = null,
+    val maxAgeFilter: Int? = null,
+
+    val genderFilter: List<Option> = emptyList(),
+    val goalFilter: List<Option> = emptyList(),
+    val improvStyleFilter: List<Option> = emptyList(),
+
+    val selectedCityID: Int? = null,
+
+    val lookingForTeamFilter: Boolean = false,
+    val hasAvatarFilter: Boolean = false,
+    val hasVideoFilter: Boolean = false,
+
+    // Pagination
+    val currentPage: Int = 1,
+    val pageSize: Int = 20,
+
+    // Results
+    val searchResult: SearchResult? = null,
+
+    // UI state
+    val isLoading: Boolean = true,
+    val error: String? = null
+)

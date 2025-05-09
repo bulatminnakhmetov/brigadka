@@ -54,7 +54,7 @@ class RootComponent(
         // Observe the current user ID and profile ID
         CoroutineScope(Dispatchers.Default).launch {
             // TODO: if profile is loading, onboarding will be shown, but it should be loading screen
-            userDataRepository.currentUserId.combine(profileRepository.currentUserProfileView) { userId, profile ->
+            userDataRepository.currentUserId.combine(profileRepository.currentUserProfile) { userId, profile ->
                 if (userId == null) {
                     Configuration.Auth
                 } else {

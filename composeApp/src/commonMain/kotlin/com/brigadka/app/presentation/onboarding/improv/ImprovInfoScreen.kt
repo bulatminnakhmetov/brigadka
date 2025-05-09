@@ -59,6 +59,7 @@ fun ImprovInfoScreen(component: ImprovInfoComponent) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // TODO: установить ограничения на количество символов
         OutlinedTextField(
             value = state.bio,
             onValueChange = { component.updateBio(it) },

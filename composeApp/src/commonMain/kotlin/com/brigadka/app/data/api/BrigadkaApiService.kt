@@ -51,6 +51,9 @@ interface BrigadkaApiServiceAuthorized {
 
     // Media endpoints
     suspend fun uploadMedia(file: ByteArray, fileName: String, thumbnail: ByteArray, thumbnailFileName: String): MediaItem
+
+    // Search endpoints
+    suspend fun searchProfiles(request: SearchRequest): SearchResponse
 }
 
 interface BrigadkaApiService : BrigadkaApiServiceUnauthorized, BrigadkaApiServiceAuthorized
@@ -159,6 +162,13 @@ class BrigadkaApiServiceAuthorizedImpl(
                 })
             }
         ).body()
+    }
+
+    override suspend fun searchProfiles(request: SearchRequest): SearchResponse {
+        return client.post("$baseUrl/profiles/search") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
     }
 }
 

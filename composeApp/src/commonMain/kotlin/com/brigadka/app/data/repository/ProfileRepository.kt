@@ -2,14 +2,14 @@ package com.brigadka.app.data.repository
 
 import com.brigadka.app.data.api.BrigadkaApiServiceAuthorized
 import com.brigadka.app.data.api.models.City
+import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.data.api.models.Profile
 import com.brigadka.app.data.api.models.ProfileCreateRequest
 import com.brigadka.app.data.api.models.ProfileUpdateRequest
+import com.brigadka.app.data.api.models.SearchRequest
 import com.brigadka.app.data.api.models.StringItem
-import com.brigadka.app.presentation.profile.common.ProfileView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +44,23 @@ interface ProfileRepository {
     suspend fun getGenders(): List<StringItem>
     suspend fun getImprovGoals(): List<StringItem>
     suspend fun getImprovStyles(): List<StringItem>
+
+    // Search profiles
+    suspend fun searchProfiles(request: SearchRequest): SearchResult
+    suspend fun searchProfiles(
+        fullName: String? = null,
+        ageMin: Int? = null,
+        ageMax: Int? = null,
+        cityId: Int? = null,
+        genders: List<String>? = null,
+        goals: List<String>? = null,
+        improvStyles: List<String>? = null,
+        lookingForTeam: Boolean? = null,
+        hasAvatar: Boolean? = null,
+        hasVideo: Boolean? = null,
+        page: Int = 1,
+        pageSize: Int = 20
+    ): SearchResult
 }
 
 class ProfileRepositoryImpl(
@@ -73,23 +90,23 @@ class ProfileRepositoryImpl(
 
 
     init {
-        // cache all translated items
-        CoroutineScope(Dispatchers.Default).launch {
-            _cities.value = getCities()
-            _genders.value = getGenders()
-            _improvGoals.value = getImprovGoals()
-            _improvStyles.value = getImprovStyles()
-        }
-
         CoroutineScope(Dispatchers.Default).launch {
             userDataRepository.currentUserId.collect { userId ->
                 if (userId != null) {
                     refreshCurrentUserProfile()
+                    loadFieldValues()
                 } else {
                     clearProfile()
                 }
             }
         }
+    }
+
+    private suspend fun loadFieldValues() {
+        _cities.value = getCities()
+        _genders.value = getGenders()
+        _improvGoals.value = getImprovGoals()
+        _improvStyles.value = getImprovStyles()
     }
 
     override suspend fun refreshCurrentUserProfile() {
@@ -147,6 +164,58 @@ class ProfileRepositoryImpl(
     override suspend fun getImprovStyles(): List<StringItem> {
         return apiService.getImprovStyles()
     }
+
+    override suspend fun searchProfiles(
+        fullName: String?,
+        ageMin: Int?,
+        ageMax: Int?,
+        cityId: Int?,
+        genders: List<String>?,
+        goals: List<String>?,
+        improvStyles: List<String>?,
+        lookingForTeam: Boolean?,
+        hasAvatar: Boolean?,
+        hasVideo: Boolean?,
+        page: Int,
+        pageSize: Int
+    ): SearchResult {
+        val request = SearchRequest(
+            full_name = fullName,
+            age_min = ageMin,
+            age_max = ageMax,
+            city_id = cityId,
+            genders = genders,
+            goals = goals,
+            improv_styles = improvStyles,
+            looking_for_team = lookingForTeam,
+            has_avatar = hasAvatar,
+            has_video = hasVideo,
+            page = page,
+            page_size = pageSize
+        )
+
+        return searchProfiles(request)
+    }
+
+    override suspend fun searchProfiles(request: SearchRequest): SearchResult {
+        val response = apiService.searchProfiles(request)
+
+        val cities = _cities.value ?: getCities()
+        val genders = _genders.value ?: getGenders()
+        val improvGoals = _improvGoals.value ?: getImprovGoals()
+        val improvStyles = _improvStyles.value ?: getImprovStyles()
+
+        val profileViews = response.profiles.map { profile ->
+            convertToProfileView(profile, cities, improvGoals, improvStyles, genders)
+        }
+
+        return SearchResult(
+            profiles = profileViews,
+            page = response.page,
+            pageSize = response.page_size,
+            totalCount = response.total_count
+        )
+    }
 }
 
 private fun convertToProfileView(
@@ -155,7 +224,7 @@ private fun convertToProfileView(
     improvGoals: List<StringItem>,
     improvStyles: List<StringItem>,
     genders: List<StringItem>,
-): ProfileView{
+): ProfileView {
     return ProfileView(
         fullName = profile.full_name,
         age = 10,
@@ -171,3 +240,23 @@ private fun convertToProfileView(
         videos = profile.videos
     )
 }
+
+data class ProfileView(
+    val fullName: String,
+    val age: Int?,
+    val genderLabel: String?,
+    val cityLabel: String?,
+    val bio: String,
+    val goalLabel: String?,
+    val improvStylesLabels: List<String> = emptyList(),
+    val lookingForTeam: Boolean = false,
+    val avatar: MediaItem?,
+    val videos: List<MediaItem> = emptyList()
+)
+
+data class SearchResult(
+    val profiles: List<ProfileView>,
+    val page: Int,
+    val pageSize: Int,
+    val totalCount: Int
+)

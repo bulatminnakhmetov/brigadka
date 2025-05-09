@@ -1,6 +1,11 @@
 package com.brigadka.app
 
+import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
+import android.view.View
+import android.view.Window
+import android.view.WindowInsetsController
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Column
@@ -50,6 +55,8 @@ class MainActivity : ComponentActivity() {
 
             }
         }
+
+        setLightStatusBar(window)
     }
 }
 
@@ -58,5 +65,26 @@ class MainActivity : ComponentActivity() {
 fun AppTheme(content: @Composable () -> Unit) {
     MaterialTheme {
         content()
+    }
+}
+
+fun setLightStatusBar(window: Window) {
+    // Set a light background color for the status bar
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        // API 30+
+        window.insetsController?.setSystemBarsAppearance(
+            WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS,
+            WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
+        )
+    } else {
+        // TODO: check if it works
+        // API 28 to 29
+
+        @Suppress("DEPRECATION")
+        window.statusBarColor = Color.WHITE
+
+        @Suppress("DEPRECATION")
+        window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR
     }
 }

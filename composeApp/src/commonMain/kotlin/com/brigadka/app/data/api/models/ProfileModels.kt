@@ -41,10 +41,10 @@ data class Profile(
     val city_id: Int,
     val gender: String,
     val goal: String,
-    val improv_styles: List<String>,
+    val improv_styles: List<String> = emptyList(),
     val looking_for_team: Boolean,
-    val avatar: MediaItem?,
-    val videos: List<MediaItem>
+    val avatar: MediaItem? = null,
+    val videos: List<MediaItem> = emptyList()
 )
 
 @Serializable

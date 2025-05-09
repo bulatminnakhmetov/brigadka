@@ -16,13 +16,13 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.presentation.profile.common.Avatar
 import com.brigadka.app.presentation.profile.common.LoadableValue
-import com.brigadka.app.presentation.profile.common.ProfileView
+import com.brigadka.app.data.repository.ProfileView
 import com.brigadka.app.presentation.profile.common.VideoSection
 
 @Composable
-fun ProfileScreen(component: ProfileViewComponent, onError: (String) -> Unit) {
+fun ProfileViewScreen(component: ProfileViewComponent, onError: (String) -> Unit) {
     val profileViewState by component.profileView.subscribeAsState()
-    ProfileScreen(
+    ProfileViewScreen(
         profileView = profileViewState.value,
         isLoading = profileViewState.isLoading,
         onError = onError,
@@ -31,17 +31,7 @@ fun ProfileScreen(component: ProfileViewComponent, onError: (String) -> Unit) {
 }
 
 @Composable
-fun ProfileScreenPreview() {
-//    val fullName: String,
-//    val age: Int?,
-//    val genderLabel: String?,
-//    val cityLabel: String?,
-//    val bio: String,
-//    val goalLabel: String?,
-//    val improvStylesLabels: List<String> = emptyList(),
-//    val lookingForTeam: Boolean = false,
-//    val avatar: MediaItem?,
-//    val videos: List<MediaItem> = emptyList()
+fun ProfileViewScreenPreview() {
     val profileView = ProfileView(
         fullName = "John Doe",
         age = 30,
@@ -62,10 +52,16 @@ fun ProfileScreenPreview() {
             MediaItem(id = 2, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video")
         )
     )
+    ProfileViewScreen(
+        profileView,
+        isLoading = false,
+        onError = {},
+        onEditProfile = {}
+    )
 }
 
 @Composable
-fun ProfileScreen(
+fun ProfileViewScreen(
     profileView: ProfileView?,
     isLoading: Boolean,
     onError: (String) -> Unit,
@@ -123,6 +119,7 @@ fun ProfileScreen(
             horizontalArrangement = Arrangement.Center,
             modifier = Modifier.fillMaxWidth()
         ) {
+            // TODO: лейблы в дб должны быть парень/девушка
             profileView.genderLabel?.let {
                 Text(
                     text = it,

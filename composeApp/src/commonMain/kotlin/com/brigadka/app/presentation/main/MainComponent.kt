@@ -1,7 +1,11 @@
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.navigate
+import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.Value
 import com.brigadka.app.presentation.chat.conversation.ChatComponent
@@ -50,20 +54,39 @@ class MainComponent(
         )
     }
 
+    @OptIn(DelicateDecomposeApi::class)
+    fun navigateTo(screen: Config) {
+        val stackItems = childStack.value.items
+        val existingIndex = stackItems.indexOfFirst { it.configuration == screen }
+
+        if (childStack.value.active.configuration == screen) {
+            // Already on this screen, do nothing
+            return
+        }
+
+        if (existingIndex != -1) {
+            // Screen is in stack, bring to front
+            mainNavigation.bringToFront(screen)
+        } else {
+            // Not in stack, push it
+            mainNavigation.push(screen)
+        }
+    }
+
     fun navigateToProfile() {
-        mainNavigation.pushNew(Config.Profile)
+        navigateTo(Config.Profile)
     }
 
     fun navigateToSearch() {
-        mainNavigation.pushNew(Config.Search)
+        navigateTo(Config.Search)
     }
 
     fun navigateToChatList() {
-        mainNavigation.pushNew(Config.ChatList)
+        navigateTo(Config.ChatList)
     }
 
     fun navigateToChat(chatId: String) {
-        mainNavigation.pushNew(Config.Chat(chatId))
+        navigateTo(Config.Chat(chatId))
     }
 }
 

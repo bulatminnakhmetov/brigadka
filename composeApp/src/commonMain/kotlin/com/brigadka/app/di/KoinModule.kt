@@ -115,14 +115,13 @@ val commonModule = module {
         ProfileViewComponent(
             componentContext = context,
             profileRepository = get(),
-            userDataRepository = get(),
         )
     }
 
     factory { (context: ComponentContext) ->
         SearchComponent(
             componentContext = context,
-            // Add your search component dependencies here
+            get()
         )
     }
 

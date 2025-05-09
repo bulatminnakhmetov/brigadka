@@ -6,7 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.presentation.profile.common.LoadableValue
-import com.brigadka.app.presentation.profile.common.ProfileView
+import com.brigadka.app.data.repository.ProfileView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

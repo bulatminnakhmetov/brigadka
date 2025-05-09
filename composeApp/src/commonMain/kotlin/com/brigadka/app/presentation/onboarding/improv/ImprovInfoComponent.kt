@@ -44,7 +44,7 @@ class ImprovInfoComponent(
                 _improvGoals.update { profileRepository.getImprovGoals() }
                 _improvStyles.update { profileRepository.getImprovStyles() }
             } catch (e: Exception) {
-                // Handle error
+                // TODO: Handle error
             }
         }
     }

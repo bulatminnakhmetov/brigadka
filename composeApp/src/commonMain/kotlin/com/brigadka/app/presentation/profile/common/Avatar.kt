@@ -32,7 +32,7 @@ import com.brigadka.app.presentation.common.CircularNetworkImage
 fun Avatar(
     mediaItem: MediaItem?,
     isUploading: Boolean = false,
-    onError: (String) -> Unit,
+    onError: (String) -> Unit = {},
     onClick: (() -> Unit)? = null,
     onRemove: (() -> Unit)? = null,
     modifier: Modifier = Modifier,

@@ -40,8 +40,8 @@ fun VideoSection(
             VideoThumbnail(
                 mediaItem = video.value,
                 isUploading = video.isLoading,
-                onRemove = {
-                    removeVideo?.invoke(video.value?.id)
+                onRemove = removeVideo?.let {
+                    { it(video.value?.id) }
                 },
                 onError = { error ->
                     onError("Failed to get video thumbnail: $error")
