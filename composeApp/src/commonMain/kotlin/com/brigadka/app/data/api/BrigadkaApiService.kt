@@ -14,6 +14,7 @@ import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.request.delete
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
 import io.ktor.client.request.get
@@ -54,6 +55,18 @@ interface BrigadkaApiServiceAuthorized {
 
     // Search endpoints
     suspend fun searchProfiles(request: SearchRequest): SearchResponse
+
+    // Chat endpoints
+    suspend fun createDirectChat(request: CreateDirectChatRequest): CreatedChatResponse
+    suspend fun getChats(): List<Chat>
+    suspend fun getChatDetails(chatId: String): Chat
+    suspend fun getChatMessages(chatId: String, limit: Int? = null, offset: Int? = null): List<ChatMessage>
+    suspend fun sendMessage(chatId: String, request: SendMessageRequest): ChatMessage
+    suspend fun addParticipant(chatId: String, request: AddParticipantRequest): String
+    suspend fun removeParticipant(chatId: String, userId: Int): String
+    suspend fun addReaction(messageId: String, request: AddReactionRequest): Map<String, String>
+    suspend fun removeReaction(messageId: String, reactionCode: String): Map<String, String>
+
 }
 
 interface BrigadkaApiService : BrigadkaApiServiceUnauthorized, BrigadkaApiServiceAuthorized
@@ -166,6 +179,59 @@ class BrigadkaApiServiceAuthorizedImpl(
 
     override suspend fun searchProfiles(request: SearchRequest): SearchResponse {
         return client.post("$baseUrl/profiles/search") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+
+
+    // Chat endpoints
+    override suspend fun getChats(): List<Chat> {
+        return client.get("$baseUrl/chats").body()
+    }
+
+    override suspend fun getChatDetails(chatId: String): Chat {
+        return client.get("$baseUrl/chats/$chatId").body()
+    }
+
+    override suspend fun getChatMessages(chatId: String, limit: Int?, offset: Int?): List<ChatMessage> {
+        return client.get("$baseUrl/chats/$chatId/messages") {
+            limit?.let { parameter("limit", it) }
+            offset?.let { parameter("offset", it) }
+        }.body()
+    }
+
+    override suspend fun sendMessage(chatId: String, request: SendMessageRequest): ChatMessage {
+        return client.post("$baseUrl/chats/$chatId/messages") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+
+    override suspend fun addParticipant(chatId: String, request: AddParticipantRequest): String {
+        return client.post("$baseUrl/chats/$chatId/participants") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+
+    override suspend fun removeParticipant(chatId: String, userId: Int): String {
+        return client.delete("$baseUrl/chats/$chatId/participants/$userId").body()
+    }
+
+    override suspend fun addReaction(messageId: String, request: AddReactionRequest): Map<String, String> {
+        return client.post("$baseUrl/messages/$messageId/reactions") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+
+    override suspend fun removeReaction(messageId: String, reactionCode: String): Map<String, String> {
+        return client.delete("$baseUrl/messages/$messageId/reactions/$reactionCode").body()
+    }
+
+    override suspend fun createDirectChat(request: CreateDirectChatRequest): CreatedChatResponse {
+        return client.post("$baseUrl/chats/direct") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()

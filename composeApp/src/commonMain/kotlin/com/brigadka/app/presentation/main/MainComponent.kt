@@ -55,6 +55,7 @@ class MainComponent(
         is Config.Chat -> Child.Chat(
             createChatComponent(componentContext, configuration.chatId)
         )
+        else -> throw IllegalArgumentException("Unknown configuration: $configuration")
     }
 
     @OptIn(DelicateDecomposeApi::class)
