@@ -14,8 +14,9 @@ import kotlinx.coroutines.launch
 class ProfileViewComponent(
     componentContext: ComponentContext,
     private val profileRepository: ProfileRepository,
-    private val userId: Int? = null,
-    val onEditProfile: () -> Unit = {},
+    private val userID: Int? = null,
+    val onEditProfile: (() -> Unit),
+    val onContactClick: (() -> Unit)
 ) : ComponentContext by componentContext {
 
     private val _profileView = MutableValue<LoadableValue<ProfileView>>(LoadableValue(isLoading = true))
@@ -24,11 +25,14 @@ class ProfileViewComponent(
     init {
         // TODO: change to scope tied to component
         CoroutineScope(Dispatchers.Default).launch {
-            val view = profileRepository.getProfileView(userId)
+            val view = profileRepository.getProfileView(userID)
             _profileView.update { it.copy(isLoading = false, value = view) }
         }
     }
 
     val isEditable: Boolean
-        get() = userId == null
+        get() = userID == null
+
+    val isContactable: Boolean
+        get() = userID != null
 }

@@ -8,6 +8,7 @@ import com.arkivanov.decompose.router.stack.navigate
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.Value
+import com.brigadka.app.di.CreateProfileViewComponent
 import com.brigadka.app.presentation.chat.conversation.ChatComponent
 import com.brigadka.app.presentation.chat.list.ChatListComponent
 import com.brigadka.app.presentation.profile.view.ProfileViewComponent
@@ -16,8 +17,8 @@ import kotlinx.serialization.Serializable
 
 class MainComponent(
     componentContext: ComponentContext,
-    private val createProfileViewComponent: (ComponentContext) -> ProfileViewComponent,
-    private val createSearchComponent: (ComponentContext) -> SearchComponent,
+    private val createProfileViewComponent: CreateProfileViewComponent,
+    private val createSearchComponent: (ComponentContext, (Int) -> Unit) -> SearchComponent,
     private val createChatListComponent: (ComponentContext, (String) -> Unit) -> ChatListComponent,
     private val createChatComponent: (ComponentContext, String) -> ChatComponent
 ) : ComponentContext by componentContext {
@@ -25,7 +26,7 @@ class MainComponent(
     private val mainNavigation = StackNavigation<Config>()
     private val mainStack = childStack(
         source = mainNavigation,
-        initialConfiguration = Config.Profile,
+        initialConfiguration = Config.Profile(),
         serializer = Config.serializer(),
         handleBackButton = true,
         childFactory = ::createChild
@@ -38,10 +39,12 @@ class MainComponent(
         componentContext: ComponentContext
     ): Child = when (configuration) {
         is Config.Profile -> Child.Profile(
-            createProfileViewComponent(componentContext)
+            createProfileViewComponent(componentContext, configuration.userID, {}, {})
         )
         is Config.Search -> Child.Search(
-            createSearchComponent(componentContext)
+            createSearchComponent(componentContext, { userID ->
+                navigateToProfile(userID)
+            })
         )
         is Config.ChatList -> Child.ChatList(
             createChatListComponent(
@@ -73,8 +76,8 @@ class MainComponent(
         }
     }
 
-    fun navigateToProfile() {
-        navigateTo(Config.Profile)
+    fun navigateToProfile(userID: Int? = null) {
+        navigateTo(Config.Profile(userID))
     }
 
     fun navigateToSearch() {
@@ -94,7 +97,7 @@ class MainComponent(
 @Serializable
 sealed class Config {
     @Serializable
-    object Profile : Config()
+    data class Profile(val userID: Int? = null) : Config()
 
     @Serializable
     object Search : Config()

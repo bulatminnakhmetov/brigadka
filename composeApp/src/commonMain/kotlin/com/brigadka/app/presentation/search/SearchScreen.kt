@@ -44,7 +44,8 @@ fun SearchScreen(component: SearchComponent) {
         onUpdateNameFilter = component::updateNameFilter,
         onSearch = component::performSearch,
         onPreviousPage = component::previousPage,
-        onNextPage = component::nextPage
+        onNextPage = component::nextPage,
+        onProfileClick = component::onProfileClick
     )
 }
 
@@ -52,6 +53,7 @@ fun SearchScreen(component: SearchComponent) {
 fun SearchScreenPreview() {
     val profiles = listOf(
         ProfileView(
+            userID = 1,
             fullName = "John Doe",
             age = 28,
             genderLabel = "Male",
@@ -64,6 +66,7 @@ fun SearchScreenPreview() {
             videos = emptyList()
         ),
         ProfileView(
+            userID = 1,
             fullName = "Jane Smith",
             age = 32,
             genderLabel = "Female",
@@ -76,6 +79,7 @@ fun SearchScreenPreview() {
             videos = emptyList()
         ),
         ProfileView(
+            userID = 1,
             fullName = "Alex Johnson",
             age = 25,
             genderLabel = "Non-binary",
@@ -140,7 +144,8 @@ fun SearchScreenPreview() {
         onUpdateNameFilter = { },
         onSearch = { },
         onPreviousPage = { },
-        onNextPage = { }
+        onNextPage = { },
+        onProfileClick = { }
     )
 }
 
@@ -161,7 +166,8 @@ fun SearchScreen(
     onUpdateNameFilter: (String) -> Unit,
     onSearch: () -> Unit,
     onPreviousPage: () -> Unit,
-    onNextPage: () -> Unit
+    onNextPage: () -> Unit,
+    onProfileClick: (Int) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -206,7 +212,7 @@ fun SearchScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = state.error!!,
+                        text = state.error,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -236,8 +242,8 @@ fun SearchScreen(
                                 modifier = Modifier.weight(1f)
                             ) {
                                 items(searchResults.profiles) { profile ->
-                                    ProfileCard(profile)
-                                    Divider()
+                                    ProfileCard(profile, onClick = { onProfileClick(profile.userID) })
+                                    HorizontalDivider()
                                 }
                             }
 
@@ -497,11 +503,12 @@ fun ChipsFilter(options: List<Option>, onClick: (String) -> Unit) {
 }
 
 @Composable
-fun ProfileCard(profile: ProfileView) {
+fun ProfileCard(profile: ProfileView, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier

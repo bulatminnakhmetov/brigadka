@@ -226,6 +226,7 @@ private fun convertToProfileView(
     genders: List<StringItem>,
 ): ProfileView {
     return ProfileView(
+        userID = profile.user_id,
         fullName = profile.full_name,
         age = 10,
         genderLabel = genders.find { it.code == profile.gender }?.label,
@@ -242,6 +243,7 @@ private fun convertToProfileView(
 }
 
 data class ProfileView(
+    val userID: Int,
     val fullName: String,
     val age: Int?,
     val genderLabel: String?,

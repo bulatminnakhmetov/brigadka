@@ -16,6 +16,7 @@ import kotlinx.coroutines.launch
 class SearchComponent(
     componentContext: ComponentContext,
     private val profileRepository: ProfileRepository,
+    val onProfileClickCallback: (Int) -> Unit
 ) : ComponentContext by componentContext {
 
     private val _state = MutableValue(SearchState())
@@ -144,6 +145,10 @@ class SearchComponent(
             _state.update { it.copy(currentPage = it.currentPage - 1) }
             performSearch()
         }
+    }
+
+    fun onProfileClick(userId: Int) {
+        onProfileClickCallback(userId)
     }
 
     fun resetFilters() {

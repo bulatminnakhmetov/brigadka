@@ -1,5 +1,6 @@
 package com.brigadka.app.di
 
+import MainComponent
 import com.arkivanov.decompose.ComponentContext
 import com.brigadka.app.BASE_URL
 import com.brigadka.app.data.api.BrigadkaApiService
@@ -35,6 +36,14 @@ import org.koin.core.module.Module
 import org.koin.core.parameter.parametersOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
+
+
+typealias CreateProfileViewComponent = (
+    context: ComponentContext,
+    userID: Int?,
+    onEditProfile: () -> Unit,
+    onContactClick: () -> Unit
+        ) -> ProfileViewComponent
 
 fun initKoin(appModule: Module = module { }, additionalConfig: KoinApplication.() -> Unit = {}): KoinApplication {
     val koinApplication = startKoin {
@@ -111,17 +120,26 @@ val commonModule = module {
         )
     }
 
-    factory { (context: ComponentContext) ->
+    factory { (
+                  context: ComponentContext,
+                  userID: Int?,
+                  onEditProfile: () -> Unit,
+                  onContactClick: () -> Unit,
+    ) ->
         ProfileViewComponent(
             componentContext = context,
             profileRepository = get(),
+            userID = userID,
+            onEditProfile = onEditProfile,
+            onContactClick = onContactClick,
         )
     }
 
-    factory { (context: ComponentContext) ->
+    factory { (context: ComponentContext, onProfileClick: (Int) -> Unit) ->
         SearchComponent(
             componentContext = context,
-            get()
+            profileRepository = get(),
+            onProfileClickCallback = onProfileClick
         )
     }
 
@@ -137,6 +155,24 @@ val commonModule = module {
         ChatComponent(
             componentContext = context,
             chatId = chatId
+        )
+    }
+
+    factory { (mainContext: ComponentContext) ->
+        MainComponent(
+            componentContext = mainContext,
+            createProfileViewComponent = { context, userID, onEditProfile, onContactClick ->
+                get<ProfileViewComponent> { parametersOf(context, userID, onEditProfile, onContactClick) }
+            },
+            createSearchComponent = { context, onProfileClick ->
+                get<SearchComponent> { parametersOf(context, onProfileClick) }
+            },
+            createChatListComponent = { context, onChatSelected ->
+                get<ChatListComponent> { parametersOf(context, onChatSelected) }
+            },
+            createChatComponent = { context, chatId ->
+                get<ChatComponent> { parametersOf(context, chatId) }
+            },
         )
     }
 
@@ -165,20 +201,11 @@ val commonModule = module {
             createAuthComponent = { context, onSuccess ->
                 get<AuthComponent> { parametersOf(context, onSuccess) }
             },
-            createProfileViewComponent = { context ->
-                get<ProfileViewComponent> { parametersOf(context) }
-            },
-            createSearchComponent = { context ->
-                get<SearchComponent> { parametersOf(context) }
-            },
-            createChatListComponent = { context, onChatSelected ->
-                get<ChatListComponent> { parametersOf(context, onChatSelected) }
-            },
-            createChatComponent = { context, chatId ->
-                get<ChatComponent> { parametersOf(context, chatId) }
-            },
             createOnboardingComponent = { context, onFinished ->
                 get<OnboardingComponent> { parametersOf(context, onFinished) }
+            },
+            createMainComponent = { context ->
+                get<MainComponent> { parametersOf(context) }
             }
         )
     }

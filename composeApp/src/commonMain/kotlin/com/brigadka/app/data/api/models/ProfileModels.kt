@@ -35,6 +35,7 @@ data class ProfileUpdateRequest(
 
 @Serializable
 data class Profile(
+    val user_id: Int,
     val full_name: String,
     val bio: String,
     val birthday: LocalDate,

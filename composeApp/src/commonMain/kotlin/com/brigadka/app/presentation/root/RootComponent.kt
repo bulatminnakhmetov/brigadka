@@ -30,12 +30,9 @@ class RootComponent(
     private val authRepository: AuthRepository,
     private val userDataRepository: UserDataRepository,
     private val profileRepository: ProfileRepository,
-    private val createProfileViewComponent: (ComponentContext) -> ProfileViewComponent,
     private val createOnboardingComponent: (ComponentContext, (Profile) -> Unit) -> OnboardingComponent,
     private val createAuthComponent: (ComponentContext, (String) -> Unit) -> AuthComponent,
-    private val createSearchComponent: (ComponentContext) -> SearchComponent,
-    private val createChatListComponent: (ComponentContext, (String) -> Unit) -> ChatListComponent,
-    private val createChatComponent: (ComponentContext, String) -> ChatComponent
+    private val createMainComponent: (ComponentContext) -> MainComponent,
 ) : ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Configuration>()
@@ -77,16 +74,10 @@ class RootComponent(
         componentContext: ComponentContext
     ): Child = when (configuration) {
         is Configuration.Auth -> Child.Auth(
-            createAuthComponent(componentContext, {})
+            createAuthComponent(componentContext, {}) // TODO: why empty?
         )
         is Configuration.Main -> Child.Main(
-            MainComponent(
-                componentContext = componentContext,
-                createProfileViewComponent,
-                createSearchComponent,
-                createChatListComponent,
-                createChatComponent,
-            )
+            createMainComponent(componentContext)
         )
         is Configuration.Onboarding -> Child.Onboarding(
             createOnboardingComponent(
