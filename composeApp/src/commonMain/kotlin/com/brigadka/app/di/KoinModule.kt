@@ -164,8 +164,10 @@ val commonModule = module {
     factory { (context: ComponentContext, onChatSelected: (String) -> Unit) ->
         ChatListComponent(
             componentContext = context,
+            api = get(),
+            profileRepository = get(),
+            webSocketClient = get(),
             onChatSelected = onChatSelected
-            // Add your chat list component dependencies here
         )
     }
 
