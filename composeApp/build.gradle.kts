@@ -108,6 +108,8 @@ android {
 
 dependencies {
     implementation(libs.androidx.material3.android)
+    implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.ui)
     debugImplementation(compose.uiTooling)
 }
 
