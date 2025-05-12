@@ -5,6 +5,7 @@ import com.brigadka.app.data.repository.Token
 import com.brigadka.app.data.repository.TokenRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerTokens
@@ -14,6 +15,7 @@ import io.ktor.client.plugins.logging.DEFAULT
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.request.delete
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
@@ -57,9 +59,9 @@ interface BrigadkaApiServiceAuthorized {
     suspend fun searchProfiles(request: SearchRequest): SearchResponse
 
     // Chat endpoints
-    suspend fun createDirectChat(request: CreateDirectChatRequest): CreatedChatResponse
+    suspend fun getOrCreateDirectChat(userID: Int): ChatIDResponse
     suspend fun getChats(): List<Chat>
-    suspend fun getChatDetails(chatId: String): Chat
+    suspend fun getChat(chatId: String): Chat
     suspend fun getChatMessages(chatId: String, limit: Int? = null, offset: Int? = null): List<ChatMessage>
     suspend fun sendMessage(chatId: String, request: SendMessageRequest): ChatMessage
     suspend fun addParticipant(chatId: String, request: AddParticipantRequest): String
@@ -190,7 +192,7 @@ class BrigadkaApiServiceAuthorizedImpl(
         return client.get("$baseUrl/chats").body()
     }
 
-    override suspend fun getChatDetails(chatId: String): Chat {
+    override suspend fun getChat(chatId: String): Chat {
         return client.get("$baseUrl/chats/$chatId").body()
     }
 
@@ -230,10 +232,10 @@ class BrigadkaApiServiceAuthorizedImpl(
         return client.delete("$baseUrl/messages/$messageId/reactions/$reactionCode").body()
     }
 
-    override suspend fun createDirectChat(request: CreateDirectChatRequest): CreatedChatResponse {
+    override suspend fun getOrCreateDirectChat(userID: Int): ChatIDResponse {
         return client.post("$baseUrl/chats/direct") {
             contentType(ContentType.Application.Json)
-            setBody(request)
+            setBody(GetOrCreateDirectChatRequest(user_id = userID))
         }.body()
     }
 }
@@ -260,7 +262,11 @@ fun createUnauthorizedKtorClient() = HttpClient {
     }
 }
 
-fun createAuthorizedKtorClient(tokenRepository: TokenRepository, refreshAccessToken: suspend (String) -> Token?) = HttpClient {
+expect fun getHttpClientEngine(): HttpClientEngine
+
+fun createAuthorizedKtorClient(tokenRepository: TokenRepository, refreshAccessToken: suspend (String) -> Token?) = HttpClient(
+    getHttpClientEngine()
+) {
     install(ContentNegotiation) {
         json(Json {
             prettyPrint = true
@@ -268,6 +274,7 @@ fun createAuthorizedKtorClient(tokenRepository: TokenRepository, refreshAccessTo
             ignoreUnknownKeys = true
         })
     }
+    install(WebSockets)
     // Logging
     install(Logging) {
         logger = Logger.DEFAULT

@@ -17,7 +17,7 @@ data class ChatMessage(
     val chat_id: String,
     val sender_id: Int,
     val content: String,
-    val sent_at: String
+    val sent_at: String?
 )
 
 @Serializable
@@ -45,11 +45,11 @@ data class AddReactionRequest(
 )
 
 @Serializable
-data class CreateDirectChatRequest(
+data class GetOrCreateDirectChatRequest(
     val user_id: Int
 )
 
 @Serializable
-data class CreatedChatResponse(
+data class ChatIDResponse(
     val chat_id: String
 )

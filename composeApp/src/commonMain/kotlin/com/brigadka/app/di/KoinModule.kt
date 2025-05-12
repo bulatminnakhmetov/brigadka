@@ -12,6 +12,7 @@ import com.brigadka.app.data.api.BrigadkaApiServiceUnauthorizedImpl
 import com.brigadka.app.data.api.createAuthorizedKtorClient
 import com.brigadka.app.data.api.createUnauthorizedKtorClient
 import com.brigadka.app.data.api.models.Profile
+import com.brigadka.app.data.api.websocket.ChatWebSocketClient
 import com.brigadka.app.data.repository.AuthRepository
 import com.brigadka.app.data.repository.AuthRepositoryImpl
 import com.brigadka.app.data.repository.MediaRepository
@@ -42,8 +43,14 @@ typealias CreateProfileViewComponent = (
     context: ComponentContext,
     userID: Int?,
     onEditProfile: () -> Unit,
-    onContactClick: () -> Unit
+    onContactClick: (String) -> Unit
         ) -> ProfileViewComponent
+
+typealias CreateChatComponent = (
+    context: ComponentContext,
+    chatID: String,
+    onBackClick: () -> Unit
+        ) -> ChatComponent
 
 fun initKoin(appModule: Module = module { }, additionalConfig: KoinApplication.() -> Unit = {}): KoinApplication {
     val koinApplication = startKoin {
@@ -108,6 +115,15 @@ val commonModule = module {
         )
     }
 
+    // Web socket client
+    single<ChatWebSocketClient> {
+        ChatWebSocketClient(
+            tokenRepository = get(),
+            httpClient = get(named(HttpClientType.AUTHORIZED)),
+            baseUrl = BASE_URL
+        )
+    }
+
     // Repositories
     single<AuthRepository> { AuthRepositoryImpl(get(), get(), get()) }
 
@@ -124,11 +140,13 @@ val commonModule = module {
                   context: ComponentContext,
                   userID: Int?,
                   onEditProfile: () -> Unit,
-                  onContactClick: () -> Unit,
+                  onContactClick: (String) -> Unit,
     ) ->
         ProfileViewComponent(
             componentContext = context,
+            brigadkaApiService = get(),
             profileRepository = get(),
+            userDataRepository = get(),
             userID = userID,
             onEditProfile = onEditProfile,
             onContactClick = onContactClick,
@@ -151,10 +169,14 @@ val commonModule = module {
         )
     }
 
-    factory { (context: ComponentContext, chatId: String) ->
+    factory { (context: ComponentContext, chatID: String, onBackClick: () -> Unit) ->
         ChatComponent(
             componentContext = context,
-            chatId = chatId
+            userDataRepository = get(),
+            api = get(),
+            webSocketClient = get(),
+            chatID = chatID,
+            onBackClick = onBackClick
         )
     }
 
@@ -170,8 +192,8 @@ val commonModule = module {
             createChatListComponent = { context, onChatSelected ->
                 get<ChatListComponent> { parametersOf(context, onChatSelected) }
             },
-            createChatComponent = { context, chatId ->
-                get<ChatComponent> { parametersOf(context, chatId) }
+            createChatComponent = { context, chatID, onBackClick ->
+                get<ChatComponent> { parametersOf(context, chatID, onBackClick) }
             },
         )
     }

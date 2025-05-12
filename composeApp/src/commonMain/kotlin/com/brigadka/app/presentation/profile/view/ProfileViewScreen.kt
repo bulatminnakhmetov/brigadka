@@ -27,7 +27,7 @@ fun ProfileViewScreen(component: ProfileViewComponent, onError: (String) -> Unit
         isLoading = profileViewState.isLoading,
         onError = onError,
         onEditProfile = component.onEditProfile,
-        onContactClick = component.onContactClick,
+        onContactClick = component::onContactClick,
         isContactable = component.isContactable,
         isEditable = component.isEditable
     )

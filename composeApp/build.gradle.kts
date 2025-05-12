@@ -37,6 +37,7 @@ kotlin {
             implementation(libs.ktor.client.logging.jvm)
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.koin.android)
+            implementation(libs.ktor.client.okhttp)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -59,6 +60,11 @@ kotlin {
             implementation(libs.decompose.extensions.compose)
             implementation(libs.kotlinx.datetime)
             implementation(libs.kamel.image.default)
+            implementation(libs.ktor.client.websockets)
+        }
+
+        iosMain.dependencies {
+            implementation(libs.ktor.client.darwin)
         }
     }
 }

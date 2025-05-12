@@ -31,6 +31,7 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.scale
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.brigadka.app.presentation.chat.conversation.ChatContent
 import com.brigadka.app.presentation.profile.view.ProfileViewScreen
 import com.brigadka.app.presentation.search.SearchScreen
 import kotlinx.coroutines.launch
@@ -76,8 +77,7 @@ fun MainContent(component: MainComponent) {
                         Text("this is chat list")
 //                        ChatListContent(instance.component)
                     is Child.Chat ->
-                        Text("this is chat")
-//                        ChatContent(instance.component)
+                        ChatContent(instance.component)
                     else -> {}
                 }
             }

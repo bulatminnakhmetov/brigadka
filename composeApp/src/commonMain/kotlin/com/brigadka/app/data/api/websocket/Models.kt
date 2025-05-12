@@ -5,31 +5,30 @@ import kotlinx.serialization.Serializable
 
 
 // Base interface for all WebSocket messages
-interface WebSocketMessage {
-    val type: MessageType
+@Serializable
+sealed interface WebSocketMessage {
     val chat_id: String
 }
 
 enum class MessageType {
-    CHAT,
-    JOIN,
-    LEAVE,
+    CHAT_MESSAGE,
+    JOIN_CHAT,
+    LEAVE_CHAT,
     REACTION,
-    REACTION_REMOVED,
+    REMOVE_REACTION,
     TYPING,
     READ_RECEIPT
 }
 
 @Serializable
+@SerialName("chat_message")
 data class ChatMessage(
-    @SerialName("type")
-    override val type: MessageType,
     @SerialName("chat_id")
     override val chat_id: String,
     @SerialName("message_id")
     val message_id: String,
     @SerialName("sender_id")
-    val sender_id: Int? = null,
+    val sender_id: Int,
     @SerialName("content")
     val content: String,
     @SerialName("sent_at")
@@ -37,9 +36,8 @@ data class ChatMessage(
 ) : WebSocketMessage
 
 @Serializable
+@SerialName("join_chat")
 data class JoinChatMessage(
-    @SerialName("type")
-    override val type: MessageType,
     @SerialName("chat_id")
     override val chat_id: String,
     @SerialName("user_id")
@@ -49,9 +47,8 @@ data class JoinChatMessage(
 ) : WebSocketMessage
 
 @Serializable
+@SerialName("leave_chat")
 data class LeaveChatMessage(
-    @SerialName("type")
-    override val type: MessageType,
     @SerialName("chat_id")
     override val chat_id: String,
     @SerialName("user_id")
@@ -61,9 +58,8 @@ data class LeaveChatMessage(
 ) : WebSocketMessage
 
 @Serializable
+@SerialName("reaction")
 data class ReactionMessage(
-    @SerialName("type")
-    override val type: MessageType,
     @SerialName("chat_id")
     override val chat_id: String,
     @SerialName("reaction_id")
@@ -79,9 +75,8 @@ data class ReactionMessage(
 ) : WebSocketMessage
 
 @Serializable
+@SerialName("remove_reaction")
 data class ReactionRemovedMessage(
-    @SerialName("type")
-    override val type: MessageType,
     @SerialName("chat_id")
     override val chat_id: String,
     @SerialName("reaction_id")
@@ -97,9 +92,8 @@ data class ReactionRemovedMessage(
 ) : WebSocketMessage
 
 @Serializable
+@SerialName("typing")
 data class TypingMessage(
-    @SerialName("type")
-    override val type: MessageType,
     @SerialName("chat_id")
     override val chat_id: String,
     @SerialName("user_id")
@@ -111,9 +105,8 @@ data class TypingMessage(
 ) : WebSocketMessage
 
 @Serializable
+@SerialName("read_receipt")
 data class ReadReceiptMessage(
-    @SerialName("type")
-    override val type: MessageType,
     @SerialName("chat_id")
     override val chat_id: String,
     @SerialName("user_id")

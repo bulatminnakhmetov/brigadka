@@ -5,9 +5,12 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.navigate
+import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.Value
+import com.brigadka.app.data.api.BrigadkaApiService
+import com.brigadka.app.di.CreateChatComponent
 import com.brigadka.app.di.CreateProfileViewComponent
 import com.brigadka.app.presentation.chat.conversation.ChatComponent
 import com.brigadka.app.presentation.chat.list.ChatListComponent
@@ -20,7 +23,7 @@ class MainComponent(
     private val createProfileViewComponent: CreateProfileViewComponent,
     private val createSearchComponent: (ComponentContext, (Int) -> Unit) -> SearchComponent,
     private val createChatListComponent: (ComponentContext, (String) -> Unit) -> ChatListComponent,
-    private val createChatComponent: (ComponentContext, String) -> ChatComponent
+    private val createChatComponent: CreateChatComponent
 ) : ComponentContext by componentContext {
 
     private val mainNavigation = StackNavigation<Config>()
@@ -39,7 +42,9 @@ class MainComponent(
         componentContext: ComponentContext
     ): Child = when (configuration) {
         is Config.Profile -> Child.Profile(
-            createProfileViewComponent(componentContext, configuration.userID, {}, {})
+            createProfileViewComponent(componentContext, configuration.userID, {}, { chatID ->
+                navigateToChat(chatID)
+            })
         )
         is Config.Search -> Child.Search(
             createSearchComponent(componentContext, { userID ->
@@ -53,7 +58,9 @@ class MainComponent(
             )
         )
         is Config.Chat -> Child.Chat(
-            createChatComponent(componentContext, configuration.chatId)
+            createChatComponent(componentContext, configuration.chatId, {
+                mainNavigation.pop()
+            })
         )
         else -> throw IllegalArgumentException("Unknown configuration: $configuration")
     }
@@ -73,7 +80,7 @@ class MainComponent(
             mainNavigation.bringToFront(screen)
         } else {
             // Not in stack, push it
-            mainNavigation.push(screen)
+            mainNavigation.pushNew(screen)
         }
     }
 

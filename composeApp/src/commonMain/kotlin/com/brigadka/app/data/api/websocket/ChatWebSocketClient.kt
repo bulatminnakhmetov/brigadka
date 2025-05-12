@@ -1,6 +1,5 @@
 package com.brigadka.app.data.api.websocket
 
-import com.brigadka.app.data.api.models.*
 import com.brigadka.app.data.repository.TokenRepository
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
@@ -12,30 +11,77 @@ import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.Json
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.header
+import kotlinx.serialization.modules.SerializersModule
+import kotlinx.serialization.modules.polymorphic
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-
 
 class ChatWebSocketClient(
     private val httpClient: HttpClient,
     private val tokenRepository: TokenRepository,
-    private val baseUrl: String,
+    private val baseUrl: String
+) {
+
     private val json: Json = Json {
         prettyPrint = true
         isLenient = true
         ignoreUnknownKeys = true
+        serializersModule = SerializersModule {
+            polymorphic(WebSocketMessage::class) {
+                subclass(ChatMessage::class, ChatMessage.serializer())
+                subclass(JoinChatMessage::class, JoinChatMessage.serializer())
+                subclass(LeaveChatMessage::class, LeaveChatMessage.serializer())
+                subclass(ReactionMessage::class, ReactionMessage.serializer())
+                subclass(ReactionRemovedMessage::class, ReactionRemovedMessage.serializer())
+                subclass(TypingMessage::class, TypingMessage.serializer())
+                subclass(ReadReceiptMessage::class, ReadReceiptMessage.serializer())
+            }
+        }
+        classDiscriminator = "type"
     }
-) {
+
     private val _connectionState = MutableStateFlow(ConnectionState.DISCONNECTED)
     val connectionState: StateFlow<ConnectionState> = _connectionState.asStateFlow()
 
     private val _incomingMessages = MutableSharedFlow<WebSocketMessage>()
     val incomingMessages: SharedFlow<WebSocketMessage> = _incomingMessages.asSharedFlow()
 
+    // Separate flows for each message type
+    val chatMessages: SharedFlow<ChatMessage> = _incomingMessages
+        .filterIsInstance<ChatMessage>()
+        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+
+    val typingMessages: SharedFlow<TypingMessage> = _incomingMessages
+        .filterIsInstance<TypingMessage>()
+        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+
+    val reactionMessages: SharedFlow<ReactionMessage> = _incomingMessages
+        .filterIsInstance<ReactionMessage>()
+        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+
+    val reactionRemovedMessages: SharedFlow<ReactionRemovedMessage> = _incomingMessages
+        .filterIsInstance<ReactionRemovedMessage>()
+        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+
+    val readReceiptMessages: SharedFlow<ReadReceiptMessage> = _incomingMessages
+        .filterIsInstance<ReadReceiptMessage>()
+        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+
+    val joinChatMessages: SharedFlow<JoinChatMessage> = _incomingMessages
+        .filterIsInstance<JoinChatMessage>()
+        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+
+    val leaveChatMessages: SharedFlow<LeaveChatMessage> = _incomingMessages
+        .filterIsInstance<LeaveChatMessage>()
+        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+
     private val _sendChannel = Channel<WebSocketMessage>(Channel.BUFFERED)
 
     private var session: WebSocketSession? = null
     private var connectionJob: Job? = null
+
+    // Client scope for managing shared flows
+    private val clientScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     suspend fun connect() {
         if (_connectionState.value == ConnectionState.CONNECTED ||
@@ -92,14 +138,13 @@ class ChatWebSocketClient(
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    suspend fun sendChatMessage(chatId: String, content: String): String {
+    suspend fun sendChatMessage(userID: Int, chatId: String, content: String): String {
         val messageId = Uuid.random().toString()
         val message = ChatMessage(
-            type = MessageType.CHAT,
             chat_id = chatId,
             message_id = messageId,
             content = content,
-            sender_id = null,
+            sender_id = userID,
             sent_at = null
         )
         _sendChannel.send(message)
@@ -108,7 +153,6 @@ class ChatWebSocketClient(
 
     suspend fun sendTypingIndicator(chatId: String, isTyping: Boolean) {
         val message = TypingMessage(
-            type = MessageType.TYPING,
             chat_id = chatId,
             user_id = null,
             is_typing = isTyping,
@@ -121,7 +165,6 @@ class ChatWebSocketClient(
     suspend fun sendReaction(chatId: String, messageId: String, reactionCode: String): String {
         val reactionId = Uuid.random().toString()
         val message = ReactionMessage(
-            type = MessageType.REACTION,
             chat_id = chatId,
             reaction_id = reactionId,
             message_id = messageId,
@@ -135,7 +178,6 @@ class ChatWebSocketClient(
 
     suspend fun removeReaction(chatId: String, messageId: String, reactionId: String, reactionCode: String) {
         val message = ReactionRemovedMessage(
-            type = MessageType.REACTION_REMOVED,
             chat_id = chatId,
             reaction_id = reactionId,
             message_id = messageId,
@@ -148,7 +190,6 @@ class ChatWebSocketClient(
 
     suspend fun sendReadReceipt(chatId: String, messageId: String) {
         val message = ReadReceiptMessage(
-            type = MessageType.READ_RECEIPT,
             chat_id = chatId,
             user_id = null,
             message_id = messageId,
@@ -177,16 +218,7 @@ class ChatWebSocketClient(
                             val text = frame.readText()
                             try {
                                 // Parse message type first to determine which class to deserialize to
-                                val messageType = extractMessageType(text)
-                                val message = when (messageType) {
-                                    MessageType.CHAT -> json.decodeFromString<ChatMessage>(text)
-                                    MessageType.JOIN -> json.decodeFromString<JoinChatMessage>(text)
-                                    MessageType.LEAVE -> json.decodeFromString<LeaveChatMessage>(text)
-                                    MessageType.REACTION -> json.decodeFromString<ReactionMessage>(text)
-                                    MessageType.REACTION_REMOVED -> json.decodeFromString<ReactionRemovedMessage>(text)
-                                    MessageType.TYPING -> json.decodeFromString<TypingMessage>(text)
-                                    MessageType.READ_RECEIPT -> json.decodeFromString<ReadReceiptMessage>(text)
-                                }
+                                val message = json.decodeFromString<WebSocketMessage>(text)
                                 _incomingMessages.emit(message)
                             } catch (e: Exception) {
                                 // Log error or handle invalid messages
@@ -201,40 +233,10 @@ class ChatWebSocketClient(
         }
     }
 
-    private fun extractMessageType(jsonText: String): MessageType {
-        val typeRegex = """"type"\s*:\s*"([^"]+)"""".toRegex()
-        val matchResult = typeRegex.find(jsonText)
-        val typeString = matchResult?.groupValues?.get(1) ?: "chat"
-        return MessageType.valueOf(typeString.uppercase())
-    }
-
     enum class ConnectionState {
         DISCONNECTED,
         CONNECTING,
         CONNECTED,
         ERROR
     }
-}
-
-
-
-fun createChatWebSocketClient(
-    tokenRepository: TokenRepository,
-    baseUrl: String
-): ChatWebSocketClient {
-    val client = HttpClient {
-        install(WebSockets)
-        install(Logging) {
-            logger = Logger.DEFAULT
-            level = LogLevel.ALL
-        }
-    }
-
-    val json = Json {
-        prettyPrint = true
-        isLenient = true
-        ignoreUnknownKeys = true
-    }
-
-    return ChatWebSocketClient(client, tokenRepository, baseUrl, json)
 }
