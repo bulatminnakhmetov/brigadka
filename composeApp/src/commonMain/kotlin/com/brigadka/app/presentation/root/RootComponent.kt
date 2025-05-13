@@ -8,15 +8,11 @@ import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
 import com.brigadka.app.data.api.models.Profile
-import com.brigadka.app.data.repository.AuthRepository
+import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.UserDataRepository
 import com.brigadka.app.presentation.auth.AuthComponent
-import com.brigadka.app.presentation.chat.conversation.ChatComponent
-import com.brigadka.app.presentation.chat.list.ChatListComponent
 import com.brigadka.app.presentation.onboarding.OnboardingComponent
-import com.brigadka.app.presentation.profile.view.ProfileViewComponent
-import com.brigadka.app.presentation.search.SearchComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
@@ -27,7 +23,7 @@ import kotlinx.serialization.Serializable
 
 class RootComponent(
     componentContext: ComponentContext,
-    private val authRepository: AuthRepository,
+    private val sessionManager: SessionManager,
     private val userDataRepository: UserDataRepository,
     private val profileRepository: ProfileRepository,
     private val createOnboardingComponent: (ComponentContext, (Profile) -> Unit) -> OnboardingComponent,
@@ -89,7 +85,7 @@ class RootComponent(
 
     fun logout() {
         runBlocking {
-            authRepository.logout()
+            sessionManager.logout()
         }
 
         navigation.replaceAll(Configuration.Auth)

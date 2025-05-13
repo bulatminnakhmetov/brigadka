@@ -3,7 +3,7 @@ package com.brigadka.app.presentation.auth.login
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnCreate
 import com.arkivanov.essenty.lifecycle.doOnDestroy
-import com.brigadka.app.data.repository.AuthRepository
+import com.brigadka.app.domain.session.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,8 +17,7 @@ import kotlinx.coroutines.launch
 class LoginComponent(
     componentContext: ComponentContext,
     private val navigateToRegister: () -> Unit,
-    private val onLoginSuccess: (String) -> Unit,
-    private val authRepository: AuthRepository
+    private val sessionManager: SessionManager
 ) : ComponentContext by componentContext {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -51,9 +50,8 @@ class LoginComponent(
 
         scope.launch {
             try {
-                val result = authRepository.login(_state.value.email, _state.value.password)
+                val result = sessionManager.login(_state.value.email, _state.value.password)
                 _state.update { it.copy(isLoading = false) }
-                result.token?.let { token -> onLoginSuccess(token) }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(

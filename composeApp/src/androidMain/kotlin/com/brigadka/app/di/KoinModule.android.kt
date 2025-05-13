@@ -1,6 +1,10 @@
 package com.brigadka.app.di
 
 import android.content.Context
+import com.brigadka.app.data.notification.PushNotificationService
+import com.brigadka.app.data.notification.PushNotificationServiceAndroid
+import com.brigadka.app.data.api.push.DeviceIdProvider
+import com.brigadka.app.data.repository.DeviceIdProviderAndroid
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.SharedPreferencesSettings
 import org.koin.core.module.Module
@@ -14,5 +18,13 @@ actual val platformModule: Module
                 Context.MODE_PRIVATE
             )
             SharedPreferencesSettings(sharedPreferences)
+        }
+
+        single<DeviceIdProvider> {
+            DeviceIdProviderAndroid(get())
+        }
+
+        single<PushNotificationService> (createdAtStart = true) {
+            PushNotificationServiceAndroid(get())
         }
     }

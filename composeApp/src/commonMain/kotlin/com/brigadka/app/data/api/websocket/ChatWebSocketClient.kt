@@ -1,6 +1,6 @@
 package com.brigadka.app.data.api.websocket
 
-import com.brigadka.app.data.repository.TokenRepository
+import com.brigadka.app.data.repository.AuthTokenRepository
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
@@ -9,16 +9,17 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.Json
-import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.header
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
+import kotlin.math.min
+import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class ChatWebSocketClient(
     private val httpClient: HttpClient,
-    private val tokenRepository: TokenRepository,
+    private val authTokenRepository: AuthTokenRepository,
     private val baseUrl: String
 ) {
 
@@ -79,57 +80,106 @@ class ChatWebSocketClient(
 
     private var session: WebSocketSession? = null
     private var connectionJob: Job? = null
+    private var reconnectionJob: Job? = null
+
+    // Reconnection settings
+    private var isReconnectionEnabled = true
+    private var baseRetryDelaySeconds = 1L
+    private var maxRetryDelaySeconds = 30L
+    private var maxRetryAttempts = 10
+    private var currentRetryAttempt = 0
 
     // Client scope for managing shared flows
     private val clientScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
-    suspend fun connect() {
+    suspend fun connect(enableReconnection: Boolean = true) {
         if (_connectionState.value == ConnectionState.CONNECTED ||
             _connectionState.value == ConnectionState.CONNECTING) {
             return
         }
 
+        isReconnectionEnabled = enableReconnection
+        currentRetryAttempt = 0
+        connectInternal()
+    }
+
+    private suspend fun connectInternal() {
         _connectionState.value = ConnectionState.CONNECTING
 
         try {
-            val token = tokenRepository.token.first().accessToken
+            val token = authTokenRepository.token.first().accessToken
             if (token == null) {
                 _connectionState.value = ConnectionState.ERROR
+                scheduleReconnectionIfNeeded()
                 return
             }
 
             connectionJob = CoroutineScope(Dispatchers.IO).launch {
-                httpClient.webSocket(
-                    method = HttpMethod.Get,
-                    host = Url(baseUrl).host,
-                    port = Url(baseUrl).port,
-                    path = "/api/ws/chat",
-                    request = {
-                        header("Authorization", "Bearer $token")
-                    }
-                ) {
-                    session = this
-                    _connectionState.value = ConnectionState.CONNECTED
+                try {
+                    httpClient.webSocket(
+                        method = HttpMethod.Get,
+                        host = Url(baseUrl).host,
+                        port = Url(baseUrl).port,
+                        path = "/api/ws/chat",
+                        request = {
+                            header("Authorization", "Bearer $token")
+                        }
+                    ) {
+                        session = this
+                        _connectionState.value = ConnectionState.CONNECTED
+                        // Reset retry counter on successful connection
+                        currentRetryAttempt = 0
 
-                    val sendJob = launch { sendMessages() }
-                    val receiveJob = launch { receiveMessages() }
+                        val sendJob = launch { sendMessages() }
+                        val receiveJob = launch { receiveMessages() }
 
-                    try {
-                        sendJob.join()
-                        receiveJob.join()
-                    } finally {
-                        sendJob.cancel()
-                        receiveJob.cancel()
-                        _connectionState.value = ConnectionState.DISCONNECTED
+                        try {
+                            sendJob.join()
+                            receiveJob.join()
+                        } finally {
+                            sendJob.cancel()
+                            receiveJob.cancel()
+                            _connectionState.value = ConnectionState.DISCONNECTED
+                            scheduleReconnectionIfNeeded()
+                        }
                     }
+                } catch (e: Exception) {
+                    _connectionState.value = ConnectionState.ERROR
+                    scheduleReconnectionIfNeeded()
                 }
             }
         } catch (e: Exception) {
             _connectionState.value = ConnectionState.ERROR
+            scheduleReconnectionIfNeeded()
         }
     }
 
-    suspend fun disconnect() {
+    private fun scheduleReconnectionIfNeeded() {
+        if (!isReconnectionEnabled) return
+        if (currentRetryAttempt >= maxRetryAttempts) return
+        if (_connectionState.value == ConnectionState.CONNECTED) return
+        if (reconnectionJob?.isActive == true) return
+
+        currentRetryAttempt++
+        // Calculate backoff delay with exponential increase
+        val delaySeconds = min(
+            baseRetryDelaySeconds * (1 shl (currentRetryAttempt - 1)),
+            maxRetryDelaySeconds
+        )
+
+        reconnectionJob = clientScope.launch {
+            delay(delaySeconds.seconds)
+            connectInternal()
+        }
+    }
+
+    suspend fun disconnect(disableReconnection: Boolean = true) {
+        if (disableReconnection) {
+            isReconnectionEnabled = false
+        }
+
+        reconnectionJob?.cancel()
+        reconnectionJob = null
         connectionJob?.cancel()
         connectionJob = null
         session?.close()
@@ -230,6 +280,7 @@ class ChatWebSocketClient(
             }
         } catch (e: Exception) {
             _connectionState.value = ConnectionState.ERROR
+            scheduleReconnectionIfNeeded()
         }
     }
 

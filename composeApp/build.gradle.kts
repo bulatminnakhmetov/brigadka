@@ -8,6 +8,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlinSerialization)
+    id("com.google.gms.google-services")
 }
 
 kotlin {
@@ -38,6 +39,8 @@ kotlin {
             implementation(libs.androidx.datastore.preferences)
             implementation(libs.koin.android)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.firebase.messaging)
+            implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.13.0"))
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -61,6 +64,7 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.kamel.image.default)
             implementation(libs.ktor.client.websockets)
+
         }
 
         iosMain.dependencies {
@@ -110,6 +114,6 @@ dependencies {
     implementation(libs.androidx.material3.android)
     implementation(libs.androidx.media3.exoplayer)
     implementation(libs.androidx.media3.ui)
+    implementation(libs.firebase.messaging.ktx)
     debugImplementation(compose.uiTooling)
 }
-

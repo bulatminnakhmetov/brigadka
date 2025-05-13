@@ -14,15 +14,19 @@ data class Token(
     val refreshToken: String? = null,
 )
 
-interface TokenRepository {
+interface AuthTokenRepository {
     val token: Flow<Token>
     suspend fun saveToken(token: Token)
     suspend fun clearToken()
 }
 
-class TokenRepositoryImpl(private val settings: Settings) : TokenRepository {
+class AuthTokenRepositoryImpl(
+    private val settings: Settings
+) : AuthTokenRepository {
+    private val tokenKey: String = "auth_token"
+
     private val json = Json { ignoreUnknownKeys = true }
-    private val tokenKey = "auth_token"
+
     private val _token = MutableStateFlow(getStoredToken())
 
     override val token: Flow<Token> = _token.asStateFlow()

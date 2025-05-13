@@ -6,13 +6,18 @@ import com.russhwolf.settings.set
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 interface UserDataRepository {
     val currentUserId: StateFlow<Int?>
+    val isLoggedIn: StateFlow<Boolean>
     suspend fun setCurrentUserId(userId: Int)
     suspend fun clearCurrentUserId()
     fun requireUserId(): Int
@@ -22,8 +27,17 @@ class UserDataRepositoryImpl(
     private val settings: Settings,
 ) : UserDataRepository {
     private val userIdKey = "user_id"
+
     private val _currentUserId = MutableStateFlow(getStoredUserId())
     override val currentUserId = _currentUserId.asStateFlow()
+    
+    override val isLoggedIn: StateFlow<Boolean> = currentUserId
+        .map { userId -> userId != null }
+        .stateIn(
+            scope = CoroutineScope(Dispatchers.Default),
+            started = SharingStarted.Eagerly,
+            initialValue = currentUserId.value != null // TODO: fix race condition
+        )
 
     override fun requireUserId(): Int {
         return currentUserId.value

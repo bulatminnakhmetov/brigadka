@@ -13,17 +13,21 @@ import com.brigadka.app.data.api.createAuthorizedKtorClient
 import com.brigadka.app.data.api.createUnauthorizedKtorClient
 import com.brigadka.app.data.api.models.Profile
 import com.brigadka.app.data.api.websocket.ChatWebSocketClient
-import com.brigadka.app.data.repository.AuthRepository
-import com.brigadka.app.data.repository.AuthRepositoryImpl
+import com.brigadka.app.domain.session.SessionManager
+import com.brigadka.app.domain.session.SessionManagerImpl
 import com.brigadka.app.data.repository.MediaRepository
 import com.brigadka.app.data.repository.MediaRepositoryImpl
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.ProfileRepositoryImpl
+import com.brigadka.app.data.api.push.PushTokenRegistrator
+import com.brigadka.app.data.api.push.PushTokenRegistratorImpl
 import com.brigadka.app.data.repository.UserDataRepository
 import com.brigadka.app.data.repository.UserDataRepositoryImpl
 import com.brigadka.app.data.repository.Token
-import com.brigadka.app.data.repository.TokenRepository
-import com.brigadka.app.data.repository.TokenRepositoryImpl
+import com.brigadka.app.data.repository.AuthTokenRepository
+import com.brigadka.app.data.repository.AuthTokenRepositoryImpl
+import com.brigadka.app.data.repository.PushTokenRepository
+import com.brigadka.app.data.repository.PushTokenRepositoryImpl
 import com.brigadka.app.presentation.auth.AuthComponent
 import com.brigadka.app.presentation.chat.conversation.ChatComponent
 import com.brigadka.app.presentation.chat.list.ChatListComponent
@@ -31,6 +35,8 @@ import com.brigadka.app.presentation.onboarding.OnboardingComponent
 import com.brigadka.app.presentation.profile.view.ProfileViewComponent
 import com.brigadka.app.presentation.root.RootComponent
 import com.brigadka.app.presentation.search.SearchComponent
+import com.brigadka.app.sync.PushTokenRegistrationManager
+import com.brigadka.app.sync.PushTokenRegistrationManagerImpl
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
@@ -67,7 +73,9 @@ fun initKoin(appModule: Module = module { }, additionalConfig: KoinApplication.(
 }
 
 val commonModule = module {
-    single<TokenRepository> { TokenRepositoryImpl(get()) }
+
+    single<AuthTokenRepository> { AuthTokenRepositoryImpl(get()) }
+    single<PushTokenRepository> { PushTokenRepositoryImpl(get()) }
 
     single<UserDataRepository> { UserDataRepositoryImpl(get()) }
 
@@ -86,7 +94,7 @@ val commonModule = module {
 
     // Now the authorized client with the token refresher
     single(named(HttpClientType.AUTHORIZED)) {
-        val tokenRepository: TokenRepository = get()
+        val authTokenRepository: AuthTokenRepository = get()
         val refreshToken: suspend (String) -> Token? = { refreshToken: String ->
             try {
                 val service: BrigadkaApiServiceUnauthorized = get()
@@ -96,7 +104,7 @@ val commonModule = module {
                 null
             }
         }
-        createAuthorizedKtorClient(tokenRepository, refreshToken)
+        createAuthorizedKtorClient(authTokenRepository, refreshToken)
     }
 
     // Define authorized API service
@@ -118,21 +126,34 @@ val commonModule = module {
     // Web socket client
     single<ChatWebSocketClient> {
         ChatWebSocketClient(
-            tokenRepository = get(),
+            authTokenRepository = get(),
             httpClient = get(named(HttpClientType.AUTHORIZED)),
             baseUrl = BASE_URL
         )
     }
 
-    // Repositories
-    single<AuthRepository> { AuthRepositoryImpl(get(), get(), get()) }
+    single<PushTokenRegistrator> {
+        PushTokenRegistratorImpl(
+            apiService = get(),
+            deviceIdProvider = get(),
+        )
+    }
+
+    single<SessionManager> { SessionManagerImpl(get(), get(), get()) }
+
+    single<PushTokenRegistrationManager> {
+        PushTokenRegistrationManagerImpl(
+            userDataRepository = get(),
+            pushTokenRepository = get(),
+            pushTokenRegistrator = get()
+        )
+    }
 
     // Component factories
     factory { (context: ComponentContext, onAuthSuccess: (String) -> Unit) ->
         AuthComponent(
             componentContext = context,
-            authRepository = get(),
-            onAuthSuccess = onAuthSuccess
+            sessionManager = get(),
         )
     }
 
@@ -219,7 +240,7 @@ val commonModule = module {
     factory { (rootContext: ComponentContext) ->
         RootComponent(
             componentContext = rootContext,
-            authRepository = get(),
+            sessionManager = get(),
             userDataRepository = get(),
             profileRepository = get(),
             createAuthComponent = { context, onSuccess ->

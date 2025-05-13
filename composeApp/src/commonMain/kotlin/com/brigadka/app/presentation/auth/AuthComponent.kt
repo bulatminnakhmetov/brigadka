@@ -7,15 +7,14 @@ import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.Value
-import com.brigadka.app.data.repository.AuthRepository
+import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.presentation.auth.login.LoginComponent
 import com.brigadka.app.presentation.auth.register.RegisterComponent
 import kotlinx.serialization.Serializable
 
 class AuthComponent(
     componentContext: ComponentContext,
-    private val authRepository: AuthRepository,
-    private val onAuthSuccess: (String) -> Unit
+    private val sessionManager: SessionManager,
 ) : ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Configuration>()
@@ -38,16 +37,14 @@ class AuthComponent(
             LoginComponent(
                 componentContext = componentContext,
                 navigateToRegister = { navigation.pushNew(Configuration.Register) },
-                onLoginSuccess = { token -> onAuthSuccess(token) },
-                authRepository = authRepository
+                sessionManager = sessionManager
             )
         )
         is Configuration.Register -> Child.Register(
             RegisterComponent(
                 componentContext = componentContext,
                 onBackClickCallback = { navigation.pop() },
-                onRegisterSuccess = { token -> onAuthSuccess(token) },
-                authRepository = authRepository
+                sessionManager = sessionManager
             )
         )
     }

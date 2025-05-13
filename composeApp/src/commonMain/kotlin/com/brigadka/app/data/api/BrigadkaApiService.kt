@@ -2,7 +2,7 @@ package com.brigadka.app.data.api
 
 import com.brigadka.app.data.api.models.*
 import com.brigadka.app.data.repository.Token
-import com.brigadka.app.data.repository.TokenRepository
+import com.brigadka.app.data.repository.AuthTokenRepository
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
@@ -68,7 +68,10 @@ interface BrigadkaApiServiceAuthorized {
     suspend fun removeParticipant(chatId: String, userId: Int): String
     suspend fun addReaction(messageId: String, request: AddReactionRequest): Map<String, String>
     suspend fun removeReaction(messageId: String, reactionCode: String): Map<String, String>
-
+    
+    // Push endpoints
+    suspend fun registerPushToken(request: RegisterPushTokenRequest): Map<String, String>
+    suspend fun unregisterPushToken(request: UnregisterPushTokenRequest): Map<String, String>
 }
 
 interface BrigadkaApiService : BrigadkaApiServiceUnauthorized, BrigadkaApiServiceAuthorized
@@ -238,6 +241,20 @@ class BrigadkaApiServiceAuthorizedImpl(
             setBody(GetOrCreateDirectChatRequest(user_id = userID))
         }.body()
     }
+
+    override suspend fun registerPushToken(request: RegisterPushTokenRequest): Map<String, String> {
+        return client.post("$baseUrl/push/register") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
+
+    override suspend fun unregisterPushToken(request: UnregisterPushTokenRequest): Map<String, String> {
+        return client.delete("$baseUrl/push/unregister") {
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }.body()
+    }
 }
 
 class BrigadkaApiServiceImpl(
@@ -264,7 +281,7 @@ fun createUnauthorizedKtorClient() = HttpClient {
 
 expect fun getHttpClientEngine(): HttpClientEngine
 
-fun createAuthorizedKtorClient(tokenRepository: TokenRepository, refreshAccessToken: suspend (String) -> Token?) = HttpClient(
+fun createAuthorizedKtorClient(authTokenRepository: AuthTokenRepository, refreshAccessToken: suspend (String) -> Token?) = HttpClient(
     getHttpClientEngine()
 ) {
     install(ContentNegotiation) {
@@ -283,7 +300,7 @@ fun createAuthorizedKtorClient(tokenRepository: TokenRepository, refreshAccessTo
     install(Auth) {
         bearer {
             loadTokens {
-                tokenRepository.token.first().let { token ->
+                authTokenRepository.token.first().let { token ->
                     if (token.accessToken != null && token.refreshToken != null) {
                         BearerTokens(token.accessToken, token.refreshToken)
                     } else {
@@ -295,20 +312,20 @@ fun createAuthorizedKtorClient(tokenRepository: TokenRepository, refreshAccessTo
                 try {
                     val oldRefreshToken = this.oldTokens?.refreshToken
                     if(oldRefreshToken == null){
-                        tokenRepository.clearToken()
+                        authTokenRepository.clearToken()
                         return@refreshTokens null
                     }
                     val newToken = refreshAccessToken(oldRefreshToken)
                     if (newToken != null) {
-                        tokenRepository.saveToken(newToken)
+                        authTokenRepository.saveToken(newToken)
                         BearerTokens(newToken.accessToken!!, newToken.refreshToken!!)
                     } else {
-                        tokenRepository.clearToken()
+                        authTokenRepository.clearToken()
                         null
                     }
                 } catch (e: ClientRequestException) {
                     if (e.response.status == HttpStatusCode.Unauthorized) {
-                        tokenRepository.clearToken()
+                        authTokenRepository.clearToken()
                         null
                     } else {
                         throw e

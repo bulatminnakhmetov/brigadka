@@ -2,7 +2,7 @@ package com.brigadka.app.presentation.auth.register
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
-import com.brigadka.app.data.repository.AuthRepository
+import com.brigadka.app.domain.session.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -16,8 +16,7 @@ import kotlinx.coroutines.launch
 class RegisterComponent(
     componentContext: ComponentContext,
     private val onBackClickCallback: () -> Unit,
-    private val onRegisterSuccess: (String) -> Unit,
-    private val authRepository: AuthRepository
+    private val sessionManager: SessionManager
 ) : ComponentContext by componentContext {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -46,12 +45,11 @@ class RegisterComponent(
 
         scope.launch {
             try {
-                val result = authRepository.register(
+                val result = sessionManager.register(
                     email = _state.value.email,
                     password = _state.value.password
                 )
                 _state.update { it.copy(isLoading = false) }
-                result.token?.let { token -> onRegisterSuccess(token) }
             } catch (e: Exception) {
                 _state.update {
                     it.copy(
