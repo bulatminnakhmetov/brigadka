@@ -9,15 +9,12 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
+
 
 interface UserDataRepository {
-    val currentUserId: StateFlow<Int?>
-    val isLoggedIn: StateFlow<Boolean>
+    val isLoggedIn: Boolean
     suspend fun setCurrentUserId(userId: Int)
     suspend fun clearCurrentUserId()
     fun requireUserId(): Int
@@ -28,32 +25,18 @@ class UserDataRepositoryImpl(
 ) : UserDataRepository {
     private val userIdKey = "user_id"
 
-    private val _currentUserId = MutableStateFlow(getStoredUserId())
-    override val currentUserId = _currentUserId.asStateFlow()
-    
-    override val isLoggedIn: StateFlow<Boolean> = currentUserId
-        .map { userId -> userId != null }
-        .stateIn(
-            scope = CoroutineScope(Dispatchers.Default),
-            started = SharingStarted.Eagerly,
-            initialValue = currentUserId.value != null // TODO: fix race condition
-        )
+    override val isLoggedIn: Boolean = getStoredUserId() != null
 
     override fun requireUserId(): Int {
-        return currentUserId.value
-            ?: throw IllegalStateException("User ID is required but not available")
+        return getStoredUserId()!! // TODO: Handle null case
     }
 
     override suspend fun setCurrentUserId(userId: Int) {
         settings[userIdKey] = userId
-        _currentUserId.value = userId
-        // Profile ID will be updated via the flow collector in init
     }
 
     override suspend fun clearCurrentUserId() {
         settings.remove(userIdKey)
-        _currentUserId.value = null
-        // Profile ID will be cleared via the flow collector in init
     }
 
     private fun getStoredUserId(): Int? {

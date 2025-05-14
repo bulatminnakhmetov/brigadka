@@ -2,6 +2,7 @@ package com.brigadka.app.presentation.auth.register
 
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.doOnDestroy
+import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.domain.session.SessionManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,7 +20,7 @@ class RegisterComponent(
     private val sessionManager: SessionManager
 ) : ComponentContext by componentContext {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = coroutineScope()
 
     private val _state = MutableStateFlow(RegisterState())
     val state: StateFlow<RegisterState> = _state.asStateFlow()

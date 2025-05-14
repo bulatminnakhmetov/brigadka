@@ -20,7 +20,8 @@ import kotlin.uuid.Uuid
 class ChatWebSocketClient(
     private val httpClient: HttpClient,
     private val authTokenRepository: AuthTokenRepository,
-    private val baseUrl: String
+    private val baseUrl: String,
+    private val coroutineScope: CoroutineScope,
 ) {
 
     private val json: Json = Json {
@@ -50,31 +51,31 @@ class ChatWebSocketClient(
     // Separate flows for each message type
     val chatMessages: SharedFlow<ChatMessage> = _incomingMessages
         .filterIsInstance<ChatMessage>()
-        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
-
-    val typingMessages: SharedFlow<TypingMessage> = _incomingMessages
-        .filterIsInstance<TypingMessage>()
-        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
-
-    val reactionMessages: SharedFlow<ReactionMessage> = _incomingMessages
-        .filterIsInstance<ReactionMessage>()
-        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
-
-    val reactionRemovedMessages: SharedFlow<ReactionRemovedMessage> = _incomingMessages
-        .filterIsInstance<ReactionRemovedMessage>()
-        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
-
-    val readReceiptMessages: SharedFlow<ReadReceiptMessage> = _incomingMessages
-        .filterIsInstance<ReadReceiptMessage>()
-        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
-
-    val joinChatMessages: SharedFlow<JoinChatMessage> = _incomingMessages
-        .filterIsInstance<JoinChatMessage>()
-        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
-
-    val leaveChatMessages: SharedFlow<LeaveChatMessage> = _incomingMessages
-        .filterIsInstance<LeaveChatMessage>()
-        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+        .shareIn(coroutineScope, SharingStarted.Eagerly, 0)
+//
+//    val typingMessages: SharedFlow<TypingMessage> = _incomingMessages
+//        .filterIsInstance<TypingMessage>()
+//        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+//
+//    val reactionMessages: SharedFlow<ReactionMessage> = _incomingMessages
+//        .filterIsInstance<ReactionMessage>()
+//        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+//
+//    val reactionRemovedMessages: SharedFlow<ReactionRemovedMessage> = _incomingMessages
+//        .filterIsInstance<ReactionRemovedMessage>()
+//        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+//
+//    val readReceiptMessages: SharedFlow<ReadReceiptMessage> = _incomingMessages
+//        .filterIsInstance<ReadReceiptMessage>()
+//        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+//
+//    val joinChatMessages: SharedFlow<JoinChatMessage> = _incomingMessages
+//        .filterIsInstance<JoinChatMessage>()
+//        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
+//
+//    val leaveChatMessages: SharedFlow<LeaveChatMessage> = _incomingMessages
+//        .filterIsInstance<LeaveChatMessage>()
+//        .shareIn(CoroutineScope(Dispatchers.Default + SupervisorJob()), SharingStarted.Eagerly, 0)
 
     private val _sendChannel = Channel<WebSocketMessage>(Channel.BUFFERED)
 
@@ -88,9 +89,6 @@ class ChatWebSocketClient(
     private var maxRetryDelaySeconds = 30L
     private var maxRetryAttempts = 10
     private var currentRetryAttempt = 0
-
-    // Client scope for managing shared flows
-    private val clientScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     suspend fun connect(enableReconnection: Boolean = true) {
         if (_connectionState.value == ConnectionState.CONNECTED ||
@@ -114,7 +112,7 @@ class ChatWebSocketClient(
                 return
             }
 
-            connectionJob = CoroutineScope(Dispatchers.IO).launch {
+            connectionJob = coroutineScope.launch(Dispatchers.IO) {
                 try {
                     httpClient.webSocket(
                         method = HttpMethod.Get,
@@ -167,7 +165,7 @@ class ChatWebSocketClient(
             maxRetryDelaySeconds
         )
 
-        reconnectionJob = clientScope.launch {
+        reconnectionJob = coroutineScope.launch {
             delay(delaySeconds.seconds)
             connectInternal()
         }

@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
+import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.api.models.City
 import com.brigadka.app.data.api.models.StringItem
 import com.brigadka.app.data.repository.ProfileRepository
@@ -20,6 +21,7 @@ class BasicInfoComponent(
     private val onNext: () -> Unit
 ) : ComponentContext by componentContext {
 
+    private val coroutineScope = coroutineScope()
 
     val profileData: Value<ProfileData> = _profileData
 
@@ -40,7 +42,7 @@ class BasicInfoComponent(
     }
 
     private fun loadCatalogData() {
-        CoroutineScope(Dispatchers.Default).launch {
+        coroutineScope.launch {
             _cities.value = profileRepository.getCities()
             _genders.value = profileRepository.getGenders()
         }

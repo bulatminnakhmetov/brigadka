@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
+import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.api.BrigadkaApiService
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.presentation.profile.common.LoadableValue
@@ -28,9 +29,10 @@ class ProfileViewComponent(
     private val _profileView = MutableValue<LoadableValue<ProfileView>>(LoadableValue(isLoading = true))
     val profileView: Value<LoadableValue<ProfileView>> = _profileView
 
+    private val coroutineScope = coroutineScope()
+
     init {
-        // TODO: change to scope tied to component
-        CoroutineScope(Dispatchers.Default).launch {
+        coroutineScope.launch {
             val view = profileRepository.getProfileView(userID)
             _profileView.update { it.copy(isLoading = false, value = view) }
         }
@@ -41,7 +43,7 @@ class ProfileViewComponent(
             // TODO: log or throw error
             return
         }
-        CoroutineScope(Dispatchers.IO).launch {
+        coroutineScope.launch {
             try {
                 val chatId = brigadkaApiService.getOrCreateDirectChat(userID).chat_id
                 withContext(Dispatchers.Main) {

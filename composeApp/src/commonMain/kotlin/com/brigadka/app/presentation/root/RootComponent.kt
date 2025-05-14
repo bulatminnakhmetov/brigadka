@@ -7,14 +7,18 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
+import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.api.models.Profile
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.UserDataRepository
+import com.brigadka.app.domain.session.LoggingState
 import com.brigadka.app.presentation.auth.AuthComponent
 import com.brigadka.app.presentation.onboarding.OnboardingComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -24,14 +28,15 @@ import kotlinx.serialization.Serializable
 class RootComponent(
     componentContext: ComponentContext,
     private val sessionManager: SessionManager,
-    private val userDataRepository: UserDataRepository,
     private val profileRepository: ProfileRepository,
-    private val createOnboardingComponent: (ComponentContext, (Profile) -> Unit) -> OnboardingComponent,
-    private val createAuthComponent: (ComponentContext, (String) -> Unit) -> AuthComponent,
+    private val createOnboardingComponent: (ComponentContext, () -> Unit) -> OnboardingComponent,
+    private val createAuthComponent: (ComponentContext) -> AuthComponent,
     private val createMainComponent: (ComponentContext) -> MainComponent,
 ) : ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Configuration>()
+
+    private val coroutineScope = coroutineScope()
 
     private val stack = childStack(
         source = navigation,
@@ -45,21 +50,27 @@ class RootComponent(
 
     init {
         // Observe the current user ID and profile ID
-        CoroutineScope(Dispatchers.Default).launch {
+        coroutineScope.launch {
             // TODO: if profile is loading, onboarding will be shown, but it should be loading screen
-            userDataRepository.currentUserId.combine(profileRepository.currentUserProfile) { userId, profile ->
-                if (userId == null) {
-                    Configuration.Auth
-                } else {
-                    if (profile == null) {
-                        Configuration.Onboarding
-                    } else {
+            sessionManager.loggingState.combine(profileRepository.currentUserProfile) { loggingState, profile ->
+                var result: Configuration? = null
+                if (loggingState is LoggingState.LoggedIn) {
+                    result = if (profile.isLoading) {
+                        Configuration.Loading
+                    } else if (profile.value != null) {
                         Configuration.Main
+                    } else {
+                        Configuration.Onboarding
                     }
+                } else if (loggingState is LoggingState.LoggedOut) {
+                    result = Configuration.Auth
                 }
+                result
             }.collect { configuration ->
-                withContext(Dispatchers.Main) {
-                    navigation.replaceAll(configuration)
+                if (configuration != null) {
+                    withContext(Dispatchers.Main) {
+                        navigation.replaceAll(configuration)
+                    }
                 }
             }
         }
@@ -70,7 +81,7 @@ class RootComponent(
         componentContext: ComponentContext
     ): Child = when (configuration) {
         is Configuration.Auth -> Child.Auth(
-            createAuthComponent(componentContext, {}) // TODO: why empty?
+            createAuthComponent(componentContext)
         )
         is Configuration.Main -> Child.Main(
             createMainComponent(componentContext)
@@ -81,13 +92,14 @@ class RootComponent(
                 { navigation.replaceAll(Configuration.Main) },
             )
         )
+        is Configuration.Loading -> Child.Loading
     }
 
+    // TODO: add logout button somewhere
     fun logout() {
         runBlocking {
             sessionManager.logout()
         }
-
         navigation.replaceAll(Configuration.Auth)
     }
 
@@ -101,11 +113,15 @@ class RootComponent(
 
         @Serializable
         data object Onboarding : Configuration()
+
+        @Serializable
+        data object Loading : Configuration()
     }
 
     sealed class Child {
         data class Auth(val component: AuthComponent) : Child()
         data class Main(val component: MainComponent) : Child()
         data class Onboarding(val component: OnboardingComponent) : Child()
+        object Loading : Child()
     }
 }

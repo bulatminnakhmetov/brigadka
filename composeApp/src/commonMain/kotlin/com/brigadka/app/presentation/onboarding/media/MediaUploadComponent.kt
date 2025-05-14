@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
+import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.repository.MediaRepository
 import com.brigadka.app.presentation.profile.common.ProfileData
 import com.brigadka.app.presentation.profile.common.LoadableValue
@@ -18,6 +19,8 @@ class MediaUploadComponent(
     private val onFinish: () -> Unit,
     private val onBack: () -> Unit,
 ) : ComponentContext by componentContext {
+
+    private val scope = coroutineScope()
 
     val profileData: Value<ProfileData> = _profileData
 
@@ -44,7 +47,7 @@ class MediaUploadComponent(
     fun uploadAvatar(fileBytes: ByteArray, fileName: String) {
         _profileData.update { it.copy(avatar = it.avatar.copy(isLoading = true)) }
 
-        CoroutineScope(Dispatchers.Default).launch {
+        scope.launch {
             try {
                 val mediaItem = mediaRepository.uploadMedia(fileBytes, fileName)
                 _profileData.update { it.copy(avatar = LoadableValue(mediaItem)) }
@@ -58,7 +61,7 @@ class MediaUploadComponent(
     fun uploadVideo(fileBytes: ByteArray, fileName: String) {
         _profileData.update { it.copy(videos = it.videos + LoadableValue(isLoading = true)) }
 
-        CoroutineScope(Dispatchers.Default).launch {
+        scope.launch {
             try {
                 val mediaItem = mediaRepository.uploadMedia(fileBytes, fileName)
 

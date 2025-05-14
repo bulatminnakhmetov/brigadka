@@ -24,11 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
 import com.brigadka.app.data.notification.PushNotificationServiceAndroid
-import com.brigadka.app.data.api.push.PushTokenRegistrator
 import com.brigadka.app.data.repository.PushTokenRepository
+import com.brigadka.app.domain.notification.PushNotificationService
 import com.brigadka.app.presentation.root.RootComponent
 import com.brigadka.app.presentation.root.RootContent
-import com.brigadka.app.sync.PushTokenRegistrationManager
+import com.brigadka.app.domain.push.PushTokenRegistrationManager
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -73,8 +73,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-        koin.get<PushTokenRegistrationManager>().start()
-
         setContent {
             AppTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
@@ -91,6 +89,8 @@ class MainActivity : ComponentActivity() {
         }
 
         setLightStatusBar(window)
+
+        koin.get<PushNotificationService>().requestNotificationPermission()
     }
 }
 

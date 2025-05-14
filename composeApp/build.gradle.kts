@@ -30,7 +30,6 @@ kotlin {
     }
 
     sourceSets {
-
         androidMain.dependencies {
             implementation(compose.preview)
             implementation(libs.androidx.activity.compose)
@@ -41,6 +40,7 @@ kotlin {
             implementation(libs.ktor.client.okhttp)
             implementation(libs.firebase.messaging)
             implementation(project.dependencies.platform("com.google.firebase:firebase-bom:33.13.0"))
+            implementation(libs.glide)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -64,7 +64,7 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.kamel.image.default)
             implementation(libs.ktor.client.websockets)
-
+            implementation(libs.kermit)
         }
 
         iosMain.dependencies {

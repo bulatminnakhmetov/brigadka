@@ -11,7 +11,6 @@ import com.brigadka.app.data.api.BrigadkaApiServiceUnauthorized
 import com.brigadka.app.data.api.BrigadkaApiServiceUnauthorizedImpl
 import com.brigadka.app.data.api.createAuthorizedKtorClient
 import com.brigadka.app.data.api.createUnauthorizedKtorClient
-import com.brigadka.app.data.api.models.Profile
 import com.brigadka.app.data.api.websocket.ChatWebSocketClient
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.domain.session.SessionManagerImpl
@@ -35,8 +34,11 @@ import com.brigadka.app.presentation.onboarding.OnboardingComponent
 import com.brigadka.app.presentation.profile.view.ProfileViewComponent
 import com.brigadka.app.presentation.root.RootComponent
 import com.brigadka.app.presentation.search.SearchComponent
-import com.brigadka.app.sync.PushTokenRegistrationManager
-import com.brigadka.app.sync.PushTokenRegistrationManagerImpl
+import com.brigadka.app.domain.push.PushTokenRegistrationManager
+import com.brigadka.app.domain.push.PushTokenRegistrationManagerImpl
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
 import org.koin.core.module.Module
@@ -73,6 +75,10 @@ fun initKoin(appModule: Module = module { }, additionalConfig: KoinApplication.(
 }
 
 val commonModule = module {
+    single {
+        // Provide a CoroutineScope for the Koin module
+        CoroutineScope(Dispatchers.Main + SupervisorJob())
+    }
 
     single<AuthTokenRepository> { AuthTokenRepositoryImpl(get()) }
     single<PushTokenRepository> { PushTokenRepositoryImpl(get()) }
@@ -124,8 +130,9 @@ val commonModule = module {
     }
 
     // Web socket client
-    single<ChatWebSocketClient> {
+    single<ChatWebSocketClient>(createdAtStart = true) {
         ChatWebSocketClient(
+            coroutineScope = get(),
             authTokenRepository = get(),
             httpClient = get(named(HttpClientType.AUTHORIZED)),
             baseUrl = BASE_URL
@@ -134,23 +141,25 @@ val commonModule = module {
 
     single<PushTokenRegistrator> {
         PushTokenRegistratorImpl(
+            coroutineScope = get(),
             apiService = get(),
             deviceIdProvider = get(),
         )
     }
 
-    single<SessionManager> { SessionManagerImpl(get(), get(), get()) }
+    single<SessionManager> { SessionManagerImpl(get(), get(), get(), get()) }
 
-    single<PushTokenRegistrationManager> {
+    single<PushTokenRegistrationManager>(createdAtStart = true) {
         PushTokenRegistrationManagerImpl(
-            userDataRepository = get(),
+            coroutineScope = get(),
+            sessionManager = get(),
             pushTokenRepository = get(),
             pushTokenRegistrator = get()
         )
     }
 
     // Component factories
-    factory { (context: ComponentContext, onAuthSuccess: (String) -> Unit) ->
+    factory { (context: ComponentContext) ->
         AuthComponent(
             componentContext = context,
             sessionManager = get(),
@@ -188,6 +197,7 @@ val commonModule = module {
             api = get(),
             profileRepository = get(),
             webSocketClient = get(),
+            userDataRepository = get(),
             onChatSelected = onChatSelected
         )
     }
@@ -222,11 +232,11 @@ val commonModule = module {
     }
 
     // Repositories
-    single<ProfileRepository> { ProfileRepositoryImpl(get(), get()) }
+    single<ProfileRepository> { ProfileRepositoryImpl(get(), get(), get(), get()) }
     single<MediaRepository> { MediaRepositoryImpl(get()) }
 
     // Component factories
-    factory { (context: ComponentContext, onFinished: (Profile) -> Unit) ->
+    factory { (context: ComponentContext, onFinished: () -> Unit) ->
         OnboardingComponent(
             componentContext = context,
             mediaRepository = get(),
@@ -241,10 +251,9 @@ val commonModule = module {
         RootComponent(
             componentContext = rootContext,
             sessionManager = get(),
-            userDataRepository = get(),
             profileRepository = get(),
-            createAuthComponent = { context, onSuccess ->
-                get<AuthComponent> { parametersOf(context, onSuccess) }
+            createAuthComponent = { context ->
+                get<AuthComponent> { parametersOf(context) }
             },
             createOnboardingComponent = { context, onFinished ->
                 get<OnboardingComponent> { parametersOf(context, onFinished) }

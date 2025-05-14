@@ -1,5 +1,6 @@
 package com.brigadka.app.presentation.onboarding
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
@@ -8,7 +9,7 @@ import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
-import com.brigadka.app.data.api.models.Profile
+import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.api.models.ProfileCreateRequest
 import com.brigadka.app.data.repository.MediaRepository
 import com.brigadka.app.data.repository.ProfileRepository
@@ -17,26 +18,26 @@ import com.brigadka.app.presentation.onboarding.improv.ImprovInfoComponent
 import com.brigadka.app.presentation.onboarding.basic.BasicInfoComponent
 import com.brigadka.app.presentation.onboarding.media.MediaUploadComponent
 import com.brigadka.app.presentation.profile.common.ProfileData
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
+
+
+private val logger = Logger.withTag("OnboardingComponent")
 
 class OnboardingComponent(
     componentContext: ComponentContext,
     private val mediaRepository: MediaRepository,
     private val profileRepository: ProfileRepository,
     private val userDataRepository: UserDataRepository,
-    private val onFinished: (Profile) -> Unit
+    private val onFinished: () -> Unit
 ) : ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
     private val _profileData = MutableValue(ProfileData())
     val profileData: Value<ProfileData> = _profileData
 
-    private val componentScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private val scope = coroutineScope()
 
     private val _stack = childStack(
         source = navigation,
@@ -92,8 +93,8 @@ class OnboardingComponent(
     }
 
     private fun completeOnboarding() {
-        componentScope.launch {
-            val userId = userDataRepository.currentUserId.value ?: return@launch
+        scope.launch {
+            val userId = userDataRepository.requireUserId()
 
             val request = ProfileCreateRequest(
                 user_id = userId,
@@ -110,10 +111,12 @@ class OnboardingComponent(
             )
 
             try {
-                val profile = profileRepository.createProfile(request)
-                onFinished(profile)
+                profileRepository.createProfile(request)
+                logger.d { "Profile created successfully" }
+                onFinished()
             } catch (e: Exception) {
-                // Handle error
+                logger.e(e) { "Failed to create profile" }
+                // TODO: handle error
             }
         }
     }

@@ -4,14 +4,17 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
+import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.api.models.City
 import com.brigadka.app.data.api.models.StringItem
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.SearchResult
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SearchComponent(
     componentContext: ComponentContext,
@@ -22,7 +25,7 @@ class SearchComponent(
     private val _state = MutableValue(SearchState())
     val state: Value<SearchState> get() = _state
 
-    private val scope = CoroutineScope(Dispatchers.Main)
+    private val coroutineScope = coroutineScope()
     private var searchJob: Job? = null
 
     init {
@@ -31,7 +34,7 @@ class SearchComponent(
     }
 
     private fun loadReferenceData() {
-        scope.launch {
+        coroutineScope.launch {
             try {
                 val cities = profileRepository.getCities()
                 val genders = profileRepository.getGenders()
@@ -45,6 +48,7 @@ class SearchComponent(
                     improvStyleFilter = styles.toOptions(),
                     isLoading = false
                 ) }
+
             } catch (e: Exception) {
                 _state.update { it.copy(
                     error = "Failed to load reference data", // TODO: gracefully degrade
@@ -62,22 +66,24 @@ class SearchComponent(
 
         _state.update { it.copy(isLoading = true, error = null) }
 
-        searchJob = scope.launch {
+        searchJob = coroutineScope.launch {
             try {
-                val result = profileRepository.searchProfiles(
-                    fullName = currentState.nameFilter,
-                    ageMin = currentState.minAgeFilter,
-                    ageMax = currentState.maxAgeFilter,
-                    cityId = currentState.selectedCityID,
-                    genders = currentState.genderFilter.mapNotNull { if (it.isSelected) it.id else null },
-                    goals = currentState.goalFilter.mapNotNull { if (it.isSelected) it.id else null },
-                    improvStyles = currentState.improvStyleFilter.mapNotNull { if (it.isSelected) it.id else null },
-                    lookingForTeam = if (currentState.lookingForTeamFilter) true else null,
-                    hasAvatar = if (currentState.hasAvatarFilter) true else null,
-                    hasVideo = if (currentState.hasVideoFilter) true else null,
-                    page = currentState.currentPage,
-                    pageSize = currentState.pageSize
-                )
+                val result = withContext(Dispatchers.IO) {
+                    profileRepository.searchProfiles(
+                        fullName = currentState.nameFilter,
+                        ageMin = currentState.minAgeFilter,
+                        ageMax = currentState.maxAgeFilter,
+                        cityId = currentState.selectedCityID,
+                        genders = currentState.genderFilter.mapNotNull { if (it.isSelected) it.id else null },
+                        goals = currentState.goalFilter.mapNotNull { if (it.isSelected) it.id else null },
+                        improvStyles = currentState.improvStyleFilter.mapNotNull { if (it.isSelected) it.id else null },
+                        lookingForTeam = if (currentState.lookingForTeamFilter) true else null,
+                        hasAvatar = if (currentState.hasAvatarFilter) true else null,
+                        hasVideo = if (currentState.hasVideoFilter) true else null,
+                        page = currentState.currentPage,
+                        pageSize = currentState.pageSize
+                    )
+                }
 
                 _state.update { it.copy(
                     searchResult = result,

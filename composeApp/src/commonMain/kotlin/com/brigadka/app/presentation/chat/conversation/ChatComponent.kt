@@ -1,6 +1,7 @@
 package com.brigadka.app.presentation.chat.conversation
 
 import com.arkivanov.decompose.ComponentContext
+import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.api.BrigadkaApiService
 import com.brigadka.app.data.api.models.ChatMessage as ChatMessageApi
 import com.brigadka.app.data.api.websocket.ChatMessage as ChatMessageWS
@@ -25,7 +26,7 @@ class ChatComponent(
 ) : ComponentContext by componentContext {
 
     private val job = SupervisorJob()
-    private val coroutineScope = CoroutineScope(Dispatchers.Main + job)
+    private val scope = coroutineScope()
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
@@ -43,7 +44,7 @@ class ChatComponent(
         // TODO: handle exception
         _uiState.update { it.copy(currentUserId = userDataRepository.requireUserId()) }
 
-        coroutineScope.launch {
+        scope.launch {
 
             // Get chat
             try {
@@ -186,7 +187,7 @@ class ChatComponent(
 
     // TODO: how should i use this???
     fun onDestroy() {
-        coroutineScope.launch {
+        scope.launch {
             webSocketClient.disconnect()
         }
         job.cancel()

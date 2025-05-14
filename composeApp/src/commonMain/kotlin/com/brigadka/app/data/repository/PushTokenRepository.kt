@@ -1,5 +1,6 @@
 package com.brigadka.app.data.repository
 
+import co.touchlab.kermit.Logger
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 import com.russhwolf.settings.Settings
@@ -8,6 +9,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
+
+private val logger = Logger.withTag("PushTokenRepository")
 
 interface PushTokenRepository {
     val token: StateFlow<String?>
@@ -20,15 +23,13 @@ class PushTokenRepositoryImpl(
 ) : PushTokenRepository {
     private val tokenKey: String = "push_token"
 
-    private val json = Json { ignoreUnknownKeys = true }
-
     private val _token = MutableStateFlow(getStoredToken())
 
     override val token: StateFlow<String?> = _token.asStateFlow()
 
     override fun saveToken(token: String) {
-        val tokenJson = json.encodeToString(token)
-        settings[tokenKey] = tokenJson
+        logger.d("Saving token: $token")
+        settings[tokenKey] = token
         _token.value = token
     }
 

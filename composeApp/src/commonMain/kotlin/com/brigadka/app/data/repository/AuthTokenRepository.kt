@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
 
@@ -15,7 +16,7 @@ data class Token(
 )
 
 interface AuthTokenRepository {
-    val token: Flow<Token>
+    val token: StateFlow<Token>
     suspend fun saveToken(token: Token)
     suspend fun clearToken()
 }
@@ -29,7 +30,7 @@ class AuthTokenRepositoryImpl(
 
     private val _token = MutableStateFlow(getStoredToken())
 
-    override val token: Flow<Token> = _token.asStateFlow()
+    override val token: StateFlow<Token> = _token.asStateFlow()
 
     override suspend fun saveToken(token: Token) {
         val tokenJson = json.encodeToString(token)

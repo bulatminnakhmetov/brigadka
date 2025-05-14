@@ -102,7 +102,7 @@ fun ChatContent(uiState: ChatComponent.ChatUiState, onBackClick: () -> Unit, onS
                 contentPadding = PaddingValues(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(uiState.messages.reversed()) { message ->
+                items(uiState.messages) { message ->
                     MessageBubble(
                         message = message,
                         isFromCurrentUser = message.sender_id == uiState.currentUserId,

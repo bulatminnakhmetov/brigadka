@@ -14,8 +14,10 @@ androidx-test-junit = "1.2.1"
 compose-multiplatform = "1.7.3"
 decompose = "3.3.0"
 foundation = "1.8.1"
+glide = "4.15.1"
 junit = "4.13.2"
 kamelImageDefault = "1.0.3"
+kermit = "2.0.5"
 koinAndroid = "4.0.4"
 kotlin = "2.1.10"
 kotlinxDatetime = "0.6.2"
@@ -43,7 +45,9 @@ androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview
 decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
 decompose-extensions-compose = { module = "com.arkivanov.decompose:extensions-compose", version.ref = "decompose" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging", version.ref = "firebaseMessagingKtx" }
+glide = { module = "com.github.bumptech.glide:glide", version.ref = "glide" }
 kamel-image-default = { module = "media.kamel:kamel-image-default", version.ref = "kamelImageDefault" }
+kermit = { module = "co.touchlab:kermit", version.ref = "kermit" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koinAndroid" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koinAndroid" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }

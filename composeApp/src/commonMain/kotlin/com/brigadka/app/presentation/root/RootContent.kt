@@ -18,6 +18,7 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.scale
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.presentation.auth.AuthContent
+import com.brigadka.app.presentation.loading.StartupLoadingScreen
 import com.brigadka.app.presentation.main.MainContent
 import com.brigadka.app.presentation.onboarding.OnboardingContent
 
@@ -33,6 +34,7 @@ fun RootContent(component: RootComponent) {
             is RootComponent.Child.Auth -> AuthContent(instance.component)
             is RootComponent.Child.Main -> MainContent(instance.component)
             is RootComponent.Child.Onboarding -> OnboardingContent(instance.component)
+            is RootComponent.Child.Loading -> StartupLoadingScreen()
         }
     }
 }

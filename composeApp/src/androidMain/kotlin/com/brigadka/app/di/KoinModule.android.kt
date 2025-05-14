@@ -1,7 +1,7 @@
 package com.brigadka.app.di
 
 import android.content.Context
-import com.brigadka.app.data.notification.PushNotificationService
+import com.brigadka.app.domain.notification.PushNotificationService
 import com.brigadka.app.data.notification.PushNotificationServiceAndroid
 import com.brigadka.app.data.api.push.DeviceIdProvider
 import com.brigadka.app.data.repository.DeviceIdProviderAndroid

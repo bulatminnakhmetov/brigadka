@@ -4,6 +4,7 @@ import com.brigadka.app.data.api.BrigadkaApiService
 import com.brigadka.app.data.api.models.MediaItem
 import io.ktor.utils.io.errors.IOException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
 interface MediaRepository {
@@ -48,7 +49,7 @@ class MediaRepositoryImpl(
         thumbnailBytes: ByteArray,
         thumbnailFileName: String
     ): MediaItem =
-        withContext(Dispatchers.Default) {
+        withContext(Dispatchers.IO) {
             try {
                 api.uploadMedia(
                     file = fileBytes,
@@ -69,7 +70,9 @@ class MediaRepositoryImpl(
         withContext(Dispatchers.Default) {
             val thumbnailData = generateThumbnail(fileBytes, fileName)
             val thumbnailFileName = "thumbnail_${replaceExtensionWithPng(fileName)}"
-            uploadMedia(fileBytes, fileName, thumbnailData, thumbnailFileName)
+            withContext(Dispatchers.IO) {
+                uploadMedia(fileBytes, fileName, thumbnailData, thumbnailFileName)
+            }
         }
 
     /**

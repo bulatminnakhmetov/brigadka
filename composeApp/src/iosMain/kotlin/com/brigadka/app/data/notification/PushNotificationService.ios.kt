@@ -1,5 +1,6 @@
 package com.brigadka.app.data.notification
 
+import com.brigadka.app.domain.notification.PushNotificationService
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
@@ -22,7 +23,7 @@ import platform.UIKit.UIApplication
 import platform.UIKit.registerForRemoteNotifications
 
 class PushNotificationServiceIOS : PushNotificationService {
-    override suspend fun requestNotificationPermission() {
+    override fun requestNotificationPermission() {
         val center = UNUserNotificationCenter.currentNotificationCenter()
         val options = UNAuthorizationOptionAlert or
                       UNAuthorizationOptionBadge or

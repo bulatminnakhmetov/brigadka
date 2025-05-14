@@ -4,6 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
+import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.api.models.StringItem
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.presentation.profile.common.ProfileData
@@ -22,6 +23,8 @@ class ImprovInfoComponent(
     private val onNext: () -> Unit,
     private val onBack: () -> Unit
 ) : ComponentContext by componentContext {
+
+    private val coroutineScope = coroutineScope()
     
     val profileData: Value<ProfileData> = _profileData
 
@@ -39,7 +42,7 @@ class ImprovInfoComponent(
     }
 
     private fun loadCatalogData() {
-        CoroutineScope(Dispatchers.Default).launch {
+        coroutineScope.launch {
             try {
                 _improvGoals.update { profileRepository.getImprovGoals() }
                 _improvStyles.update { profileRepository.getImprovStyles() }
