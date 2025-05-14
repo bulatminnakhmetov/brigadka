@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -107,24 +108,14 @@ fun MediaUploadScreen(
             .verticalScroll(scrollState)
     ) {
         Text(
-            text = "Add media to your profile",
+            text = "Добавь фото и видео",
             style = MaterialTheme.typography.headlineMedium
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Upload a profile photo and videos showcasing your improv skills",
-            style = MaterialTheme.typography.bodyMedium,
-            textAlign = TextAlign.Start,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // Avatar upload section
         Text(
-            text = "Photo",
+            text = "Фото",
             style = MaterialTheme.typography.titleMedium
         )
 
@@ -138,18 +129,27 @@ fun MediaUploadScreen(
             },
             onClick = pickImage,
             onRemove = removeAvatar,
-            modifier = Modifier.align(Alignment.CenterHorizontally)
+            modifier = Modifier.align(Alignment.CenterHorizontally).size(180.dp)
         )
         
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(36.dp))
 
         // Avatar upload section
         Text(
-            text = "Videos",
+            text = "Видео",
             style = MaterialTheme.typography.titleMedium
         )
 
         Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Загрузите видео с джемов или выступлений, чтобы другие импровизаторы могли увидеть вашу игру",
+            style = MaterialTheme.typography.bodyMedium,
+            textAlign = TextAlign.Start,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
 
         VideoSection(
             videos = videos,
@@ -171,14 +171,14 @@ fun MediaUploadScreen(
                 onClick = { onBack() },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Back")
+                Text("Назад")
             }
 
             Button(
                 onClick = { onFinish() },
                 modifier = Modifier.weight(1f),
             ) {
-                Text("Finish")
+                Text("Завершить")
             }
         }
     }

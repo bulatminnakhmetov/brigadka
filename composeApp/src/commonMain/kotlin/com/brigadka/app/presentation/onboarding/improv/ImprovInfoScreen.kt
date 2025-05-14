@@ -29,13 +29,111 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.brigadka.app.data.api.models.City
+import com.brigadka.app.data.api.models.MediaItem
+import com.brigadka.app.data.api.models.StringItem
+import com.brigadka.app.presentation.profile.common.LoadableValue
+import com.brigadka.app.presentation.profile.common.ProfileData
+import kotlinx.datetime.LocalDate
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ImprovInfoScreen(component: ImprovInfoComponent) {
     val state by component.profileData.subscribeAsState()
     val improvGoals by component.improvGoals.collectAsState()
     val improvStyles by component.improvStyles.collectAsState()
+
+    ImprovInfoScreen(
+        state = state,
+        improvGoals = improvGoals,
+        improvStyles = improvStyles,
+        updateBio = component::updateBio,
+        updateGoal = component::updateGoal,
+        toggleStyle = component::toggleStyle,
+        updateLookingForTeam = component::updateLookingForTeam,
+        back = component::back,
+        next = component::next,
+        isCompleted = component.isCompleted
+    )
+}
+
+@Composable
+fun ImprovInfoScreenPreview() {
+    val profileData = ProfileData(
+        fullName = "John Doe",
+        birthday = LocalDate(2000, 1, 1),
+        gender = "male",
+        cityId = 1,
+        goal = "hobby",
+        improvStyles = listOf("shortform"),
+        lookingForTeam = true,
+        avatar = LoadableValue(
+            value = MediaItem(
+                id = 1,
+                url = "https://example.com/avatar.jpg",
+                thumbnail_url = "https://example.com/avatar_thumbnail.jpg"
+            )
+        ),
+        videos = listOf(
+            LoadableValue(
+                value = MediaItem(
+                    id = 0,
+                    url = "https://example.com/video1.mp4",
+                    thumbnail_url = "https://example.com/video"
+                )
+            ),
+            LoadableValue(
+                value = MediaItem(
+                    id = 1,
+                    url = "https://example.com/video1.mp4",
+                    thumbnail_url = "https://example.com/video"
+                )
+            ),
+            LoadableValue(
+                value = MediaItem(
+                    id = 2,
+                    url = "https://example.com/video1.mp4",
+                    thumbnail_url = "https://example.com/video"
+                )
+            ),
+        )
+    )
+    val goals = listOf(
+        StringItem(code = "hobby", label = "Hobby"),
+        StringItem(code = "professional", label = "Professional")
+    )
+    val styles = listOf(
+        StringItem(code = "shortform", label = "Shortform"),
+        StringItem(code = "longform", label = "Longform")
+    )
+
+    ImprovInfoScreen(
+        state = profileData,
+        improvGoals = goals,
+        improvStyles = styles,
+        updateBio = {},
+        updateGoal = {},
+        toggleStyle = {},
+        updateLookingForTeam = {},
+        back = {},
+        next = {},
+        isCompleted = true
+    )
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun ImprovInfoScreen(
+    state: ProfileData,
+    improvGoals: List<StringItem>,
+    improvStyles: List<StringItem>,
+    updateBio: (String) -> Unit,
+    updateGoal: (String) -> Unit,
+    toggleStyle: (String) -> Unit,
+    updateLookingForTeam: (Boolean) -> Unit,
+    back: () -> Unit,
+    next: () -> Unit,
+    isCompleted: Boolean = true,
+) {
     val scrollState = rememberScrollState()
 
     Column(
@@ -46,12 +144,12 @@ fun ImprovInfoScreen(component: ImprovInfoComponent) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Tell us more about yourself",
+            text = "Расскажите о себе еще",
             style = MaterialTheme.typography.headlineMedium
         )
 
         Text(
-            text = "This information helps other improvisers know you better",
+            text = "Эта информация поможет другим импровизаторам лучше вас узнать",
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Start,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -62,18 +160,19 @@ fun ImprovInfoScreen(component: ImprovInfoComponent) {
         // TODO: установить ограничения на количество символов
         OutlinedTextField(
             value = state.bio,
-            onValueChange = { component.updateBio(it) },
-            label = { Text("Bio") },
-            placeholder = { Text("Tell us about your background...") },
+            onValueChange = { updateBio(it) },
+            label = { Text("О себе") },
+            placeholder = { Text("Раскажите больше про ваш опыт...") },
             modifier = Modifier.fillMaxWidth(),
             minLines = 3,
-            maxLines = 5
+            maxLines = 5,
+            shape = MaterialTheme.shapes.medium,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Your improv goal",
+            text = "Ваша цель в импровизации",
             style = MaterialTheme.typography.titleMedium
         )
 
@@ -86,7 +185,7 @@ fun ImprovInfoScreen(component: ImprovInfoComponent) {
                 improvGoals.forEach { goal ->
                     FilterChip(
                         selected = state.goal == goal.code,
-                        onClick = { component.updateGoal(goal.code) },
+                        onClick = { updateGoal(goal.code) },
                         label = { Text(goal.label) }
                     )
                 }
@@ -98,7 +197,7 @@ fun ImprovInfoScreen(component: ImprovInfoComponent) {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Improv styles you enjoy",
+            text = "Что вам нравится в импровизации",
             style = MaterialTheme.typography.titleMedium
         )
 
@@ -111,7 +210,7 @@ fun ImprovInfoScreen(component: ImprovInfoComponent) {
                 improvStyles.forEach { style ->
                     FilterChip(
                         selected = style.code in state.improvStyles,
-                        onClick = { component.toggleStyle(style.code) },
+                        onClick = { toggleStyle(style.code) },
                         label = { Text(style.label) }
                     )
                 }
@@ -129,18 +228,19 @@ fun ImprovInfoScreen(component: ImprovInfoComponent) {
         ) {
             Column {
                 Text(
-                    text = "Looking for a team",
+                    text = "Ищу команду",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Text(
-                    text = "Let others know you're available to join a team",
+                    // TODO: replace newline with proper container sizing
+                    text = "Дайте знать другим импровизаторам,что вы\nищете команду",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Switch(
                 checked = state.lookingForTeam,
-                onCheckedChange = { component.updateLookingForTeam(it) }
+                onCheckedChange = { updateLookingForTeam(it) }
             )
         }
 
@@ -153,18 +253,18 @@ fun ImprovInfoScreen(component: ImprovInfoComponent) {
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             FilledTonalButton(
-                onClick = { component.back() },
+                onClick = { back() },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Back")
+                Text("Назад")
             }
 
             Button(
-                onClick = { component.next() },
+                onClick = { next() },
                 modifier = Modifier.weight(1f),
-                enabled = component.isCompleted
+                enabled = isCompleted
             ) {
-                Text("Continue")
+                Text("Продолжить")
             }
         }
     }

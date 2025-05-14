@@ -95,14 +95,6 @@ class RootComponent(
         is Configuration.Loading -> Child.Loading
     }
 
-    // TODO: add logout button somewhere
-    fun logout() {
-        runBlocking {
-            sessionManager.logout()
-        }
-        navigation.replaceAll(Configuration.Auth)
-    }
-
     @Serializable
     sealed class Configuration {
         @Serializable

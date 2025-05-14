@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 class RegisterComponent(
     componentContext: ComponentContext,
-    private val onBackClickCallback: () -> Unit,
+    val onLoginClick: () -> Unit,
     private val sessionManager: SessionManager
 ) : ComponentContext by componentContext {
 
@@ -46,7 +46,7 @@ class RegisterComponent(
 
         scope.launch {
             try {
-                val result = sessionManager.register(
+                sessionManager.register(
                     email = _state.value.email,
                     password = _state.value.password
                 )
@@ -60,10 +60,6 @@ class RegisterComponent(
                 }
             }
         }
-    }
-
-    fun onBackClick() {
-        onBackClickCallback()
     }
 
     private fun validateInput(): Boolean {

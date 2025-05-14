@@ -3,6 +3,7 @@ package com.brigadka.app.presentation.auth
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.pushNew
@@ -36,17 +37,36 @@ class AuthComponent(
         is Configuration.Login -> Child.Login(
             LoginComponent(
                 componentContext = componentContext,
-                navigateToRegister = { navigation.pushNew(Configuration.Register) },
+                navigateToRegister = { navigateTo(Configuration.Register) },
                 sessionManager = sessionManager
             )
         )
         is Configuration.Register -> Child.Register(
             RegisterComponent(
                 componentContext = componentContext,
-                onBackClickCallback = { navigation.pop() },
+                onLoginClick = { navigateTo(Configuration.Login) },
                 sessionManager = sessionManager
             )
         )
+    }
+
+    // TODO: same fuctionality in MainComponent, consider moving to base class
+    fun navigateTo(screen: Configuration) {
+        val stackItems = childStack.value.items
+        val existingIndex = stackItems.indexOfFirst { it.configuration == screen }
+
+        if (childStack.value.active.configuration == screen) {
+            // Already on this screen, do nothing
+            return
+        }
+
+        if (existingIndex != -1) {
+            // Screen is in stack, bring to front
+            navigation.bringToFront(screen)
+        } else {
+            // Not in stack, push it
+            navigation.pushNew(screen)
+        }
     }
 
     @Serializable

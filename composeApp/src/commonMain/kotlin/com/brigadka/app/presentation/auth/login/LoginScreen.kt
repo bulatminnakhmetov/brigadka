@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -19,6 +20,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -27,7 +29,41 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun LoginScreen(component: LoginComponent) {
     val state by component.state.collectAsState()
+    LoginScreen(
+        state = state,
+        onEmailChanged = component::onEmailChanged,
+        onPasswordChanged = component::onPasswordChanged,
+        onLoginClick = component::onLoginClick,
+        onRegisterClick = component::onRegisterClick
+    )
+}
 
+@Composable
+fun LoginScreenPreview() {
+    LoginScreen(
+        state = LoginComponent.LoginState(
+            email = "",
+            password = "",
+            emailError = null,
+            passwordError = null,
+            error = null,
+            isLoading = false
+        ),
+        onEmailChanged = {},
+        onPasswordChanged = {},
+        onLoginClick = {},
+        onRegisterClick = {}
+    )
+}
+
+@Composable
+fun LoginScreen(
+    state: LoginComponent.LoginState,
+    onEmailChanged: (String) -> Unit = {},
+    onPasswordChanged: (String) -> Unit = {},
+    onLoginClick: () -> Unit = {},
+    onRegisterClick: () -> Unit = {},
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -36,15 +72,15 @@ fun LoginScreen(component: LoginComponent) {
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Login to Brigadka",
-            style = MaterialTheme.typography.displayLarge
+            text = "Добро пожаловать",
+            style = MaterialTheme.typography.displayMedium
         )
 
         Spacer(modifier = Modifier.height(32.dp))
 
         OutlinedTextField(
             value = state.email,
-            onValueChange = component::onEmailChanged,
+            onValueChange = onEmailChanged,
             label = { Text("Email") },
             isError = state.emailError != null,
             enabled = !state.isLoading,
@@ -52,7 +88,8 @@ fun LoginScreen(component: LoginComponent) {
                 keyboardType = KeyboardType.Email,
                 imeAction = ImeAction.Next
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium  // TODO: make consistent with other text fields
         )
 
         state.emailError?.let { error ->
@@ -71,8 +108,8 @@ fun LoginScreen(component: LoginComponent) {
 
         OutlinedTextField(
             value = state.password,
-            onValueChange = component::onPasswordChanged,
-            label = { Text("Password") },
+            onValueChange = onPasswordChanged,
+            label = { Text("Пароль") },
             isError = state.passwordError != null,
             enabled = !state.isLoading,
             visualTransformation = PasswordVisualTransformation(),
@@ -80,7 +117,8 @@ fun LoginScreen(component: LoginComponent) {
                 keyboardType = KeyboardType.Password,
                 imeAction = ImeAction.Done
             ),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium // TODO: make consistent with other text fields
         )
 
         state.passwordError?.let { error ->
@@ -106,7 +144,7 @@ fun LoginScreen(component: LoginComponent) {
         }
 
         Button(
-            onClick = component::onLoginClick,
+            onClick = onLoginClick,
             enabled = !state.isLoading,
             modifier = Modifier.fillMaxWidth()
         ) {
@@ -116,16 +154,16 @@ fun LoginScreen(component: LoginComponent) {
                     modifier = Modifier.padding(end = 8.dp)
                 )
             }
-            Text("Login")
+            Text("Войти")
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
         TextButton(
-            onClick = component::onRegisterClick,
-            enabled = !state.isLoading
+            onClick = onRegisterClick,
+            enabled = !state.isLoading,
         ) {
-            Text("Don't have an account? Register")
+            Text("Нет аккаунта? Зарегистрируйтесь")
         }
     }
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -41,7 +42,7 @@ fun Avatar(
         // Show a progress indicator while uploading
         Box(
             modifier = modifier
-                .size(120.dp)
+                .aspectRatio(1f)
                 .clip(CircleShape)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
             contentAlignment = Alignment.Center
@@ -54,9 +55,9 @@ fun Avatar(
         // Show the avatar image
         Box(
             modifier = modifier
-                .size(120.dp)
+                .aspectRatio(1f)
                 .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .background(MaterialTheme.colorScheme.secondaryContainer)
                 .clickable(enabled = onClick != null) {
                     onClick?.invoke()
                 },
@@ -70,7 +71,7 @@ fun Avatar(
                     onError = { error ->
                         onError("Failed to load avatar: $error")
                     },
-                    modifier = Modifier.size(120.dp),
+                    modifier = Modifier.fillMaxSize(),
                 )
 
                 // Remove button
@@ -98,7 +99,7 @@ fun Avatar(
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "Default Avatar",
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

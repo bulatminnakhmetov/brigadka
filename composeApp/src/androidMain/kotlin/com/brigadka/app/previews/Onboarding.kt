@@ -4,28 +4,27 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.brigadka.app.presentation.AppTheme
-import com.brigadka.app.presentation.profile.view.HomeProfileViewScreenPreview
-import com.brigadka.app.presentation.profile.view.OtherProfileViewScreenPreview
+import com.brigadka.app.presentation.onboarding.basic.BasicInfoScreenPreview
+import com.brigadka.app.presentation.onboarding.improv.ImprovInfoScreenPreview
 
 @Preview
 @Composable
-fun HomeProfileViewScreenPreviewPreview() {
+fun ImprovInfoScreenPreviewPreview() {
     AppTheme {
         Surface {
-            HomeProfileViewScreenPreview()
-        }
-    }
-
-}
-
-@Preview
-@Composable
-fun OtherProfileViewScreenPreviewPreview() {
-    AppTheme {
-        Surface {
-            OtherProfileViewScreenPreview()
+            ImprovInfoScreenPreview()
         }
     }
 }
 
+@Preview
+@Composable
+fun BasicInfoScreenPreviewPreview() {
+    AppTheme {
+        Surface {
+            BasicInfoScreenPreview()
+        }
+    }
+
+}
 

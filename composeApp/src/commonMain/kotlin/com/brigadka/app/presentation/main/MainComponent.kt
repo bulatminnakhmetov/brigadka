@@ -66,7 +66,6 @@ class MainComponent(
         else -> throw IllegalArgumentException("Unknown configuration: $configuration")
     }
 
-    @OptIn(DelicateDecomposeApi::class)
     fun navigateTo(screen: Config) {
         val stackItems = childStack.value.items
         val existingIndex = stackItems.indexOfFirst { it.configuration == screen }

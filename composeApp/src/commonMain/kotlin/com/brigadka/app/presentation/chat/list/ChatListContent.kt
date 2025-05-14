@@ -27,6 +27,35 @@ fun ChatListContent(component: ChatListComponent) {
 }
 
 @Composable
+fun ChatListContentPreview() {
+    ChatListContent(
+        uiState = ChatListComponent.UiState(
+            isLoading = false,
+            chats = listOf(
+                ChatListComponent.ChatPreview(
+                    chatId = "1",
+                    name = "John Doe",
+                    lastMessage = "Hello!",
+                    lastMessageTime = "10:00 AM",
+                    unreadCount = 2,
+                    avatar = null
+                ),
+                ChatListComponent.ChatPreview(
+                    chatId = "2",
+                    name = "Jane Smith",
+                    lastMessage = null,
+                    lastMessageTime = null,
+                    unreadCount = 0,
+                    avatar = null
+                )
+            )
+        ),
+        onChatClick = {},
+        onError = {}
+    )
+}
+
+@Composable
 fun ChatListContent(
     uiState: ChatListComponent.UiState,
     onChatClick: (String) -> Unit,
@@ -50,12 +79,12 @@ fun ChatListContent(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "No conversations yet",
+                        text = "Нет чатов пока что",
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Start a new chat by visiting someone's profile",
+                        text = "Зайдите в профиль другого пользователя и напишите ему сообщение",
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -71,6 +100,7 @@ fun ChatListContent(
                             onClick = { onChatClick(chat.chatId) },
                             onError = onError
                         )
+                        HorizontalDivider()
                     }
                 }
             }

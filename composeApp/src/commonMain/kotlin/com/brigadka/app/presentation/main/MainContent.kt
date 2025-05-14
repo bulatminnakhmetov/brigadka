@@ -1,6 +1,7 @@
 package com.brigadka.app.presentation.main
 
 import MainComponent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +14,7 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.SnackbarHost
@@ -24,6 +26,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
@@ -132,7 +135,8 @@ fun BrigadkaBottomBar(
     var selectedTab by remember { mutableStateOf(0) }
 
     NavigationBar(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(),
+        containerColor = MaterialTheme.colorScheme.background
     ) {
         NavigationBarItem(
             selected = selectedTab == 0,
@@ -141,7 +145,7 @@ fun BrigadkaBottomBar(
                 onProfileClick()
             },
             icon = { Icon(Icons.Default.Person, contentDescription = "Profile") },
-            label = { Text("Profile") }
+            label = { Text("Профиль") }
         )
 
         NavigationBarItem(
@@ -151,7 +155,7 @@ fun BrigadkaBottomBar(
                 onSearchClick()
             },
             icon = { Icon(Icons.Default.Search, contentDescription = "Search") },
-            label = { Text("Search") }
+            label = { Text("Поиск") }
         )
 
         NavigationBarItem(
@@ -161,7 +165,7 @@ fun BrigadkaBottomBar(
                 onChatListClick()
             },
             icon = { Icon(Icons.Default.Email, contentDescription = "Chat") },
-            label = { Text("Chat") }
+            label = { Text("Чат") }
         )
     }
 }

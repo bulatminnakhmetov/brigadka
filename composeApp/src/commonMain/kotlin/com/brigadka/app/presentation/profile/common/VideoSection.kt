@@ -33,7 +33,7 @@ fun VideoSection(
 ) {
     LazyRow (
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         items(videos.size) { index ->
             val video = videos[index]
@@ -47,7 +47,7 @@ fun VideoSection(
                     onError("Failed to get video thumbnail: $error")
                 },
                 modifier = Modifier
-                    .size(150.dp)
+                    .width(200.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant)
                     .clickable(enabled = !video.isLoading) {
@@ -63,7 +63,7 @@ fun VideoSection(
             onClick = { pickVideo() },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 16.dp),
             shape = RoundedCornerShape(8.dp)
         ) {
             if (videos.any { it.isLoading }) {
@@ -79,7 +79,7 @@ fun VideoSection(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Upload Video")
+                Text("Загрузить")
             }
         }
     }

@@ -10,6 +10,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +43,7 @@ fun DatePickerField(label: String, onDateSelected: (LocalDate?) -> kotlin.Unit, 
         trailingIcon = {
             Icon(Icons.Default.DateRange, contentDescription = "Select date")
         },
+        shape = MaterialTheme.shapes.medium,
         modifier = modifier
             .fillMaxWidth()
             .pointerInput(selectedDate) {

@@ -3,6 +3,7 @@ package com.brigadka.app.presentation.profile.common
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -99,13 +100,13 @@ fun VideoThumbnail(
 
     // Thumbnail view
     Box(
-        modifier = modifier.clip(RoundedCornerShape(8.dp))
+        modifier = modifier.clip(RoundedCornerShape(8.dp)).aspectRatio(16/9f)
     ) {
         if (isUploading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
@@ -126,7 +127,7 @@ fun VideoThumbnail(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                            .background(MaterialTheme.colorScheme.secondaryContainer),
                         contentAlignment = Alignment.Center
                     ) {}
                 }
@@ -140,8 +141,7 @@ fun VideoThumbnail(
                         if (videoUrl.isNotEmpty()) {
                             showFullscreenPlayer = true
                         }
-                    }
-                    .background(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)),
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -162,7 +162,7 @@ fun VideoThumbnail(
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Remove Video",
-                    tint = MaterialTheme.colorScheme.surfaceDim
+                    tint = MaterialTheme.colorScheme.surface
                 )
             }
         }

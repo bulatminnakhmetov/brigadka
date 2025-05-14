@@ -3,29 +3,98 @@ package com.brigadka.app.presentation.onboarding.basic
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.brigadka.app.data.api.models.City
+import com.brigadka.app.data.api.models.MediaItem
+import com.brigadka.app.data.api.models.StringItem
+import com.brigadka.app.presentation.common.CityPicker
 import com.brigadka.app.presentation.common.DatePickerField
+import com.brigadka.app.presentation.profile.common.LoadableValue
+import com.brigadka.app.presentation.profile.common.ProfileData
+import kotlinx.datetime.LocalDate
+
 
 @Composable
 fun BasicInfoScreen(component: BasicInfoComponent) {
     val state by component.profileData.subscribeAsState()
     val cities by component.cities.subscribeAsState()
     val genders by component.genders.subscribeAsState()
-    val scrollState = rememberScrollState()
+    BasicInfoScreen(
+        profileData = state,
+        cities = cities,
+        genders = genders,
+        updateFullName = component::updateFullName,
+        updateBirthday = component::updateBirthday,
+        updateGender = component::updateGender,
+        updateCityId = component::updateCityId,
+        next = component::next,
+        isCompleted = component.isCompleted
+    )
+}
 
-    // For city selection
-    var isDropdownExpanded by remember { mutableStateOf(false) }
-    var citySearchQuery by remember { mutableStateOf("") }
-    val currentCityName = remember(state.cityId, cities) {
-        cities.find { it.id == state.cityId }?.name ?: ""
-    }
+@Composable
+fun BasicInfoScreenPreview() {
+    val profileData = ProfileData(
+        fullName = "John Doe",
+        birthday = LocalDate(2000, 1, 1),
+        gender = "male",
+        cityId = 1,
+        bio = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+        goal = "hobby",
+        improvStyles = listOf("shortform"),
+        lookingForTeam = true,
+        avatar = LoadableValue(value = MediaItem(
+            id = 1,
+            url = "https://example.com/avatar.jpg",
+            thumbnail_url = "https://example.com/avatar_thumbnail.jpg"
+        )),
+        videos = listOf(
+            LoadableValue(value = MediaItem(id = 0, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video")),
+            LoadableValue(value = MediaItem(id = 1, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video")),
+            LoadableValue(value = MediaItem(id = 2, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video")),
+        )
+    )
+    val cities = listOf(
+        City(id = 1, name = "New York"),
+        City(id = 2, name = "Los Angeles"),
+        City(id = 3, name = "Chicago")
+    )
+    val genders = listOf(
+        StringItem(code = "male", label = "Male"),
+        StringItem(code = "female", label = "Female")
+    )
+
+    BasicInfoScreen(
+        profileData = profileData,
+        cities = cities,
+        genders = genders,
+        updateFullName = {},
+        updateBirthday = {},
+        updateGender = {},
+        updateCityId = {},
+        next = {},
+        isCompleted = true,
+    )
+}
+
+@Composable
+fun BasicInfoScreen(
+    profileData: ProfileData,
+    cities: List<City>,
+    genders: List<StringItem>,
+    updateFullName: (String) -> Unit,
+    updateBirthday: (LocalDate?) -> Unit,
+    updateGender: (String) -> Unit,
+    updateCityId: (Int) -> Unit,
+    next: () -> Unit,
+    isCompleted: Boolean
+) {
+    val scrollState = rememberScrollState()
 
     Column(
         modifier = Modifier
@@ -35,123 +104,66 @@ fun BasicInfoScreen(component: BasicInfoComponent) {
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Tell us about yourself",
+            text = "Расскажите о себе",
             style = MaterialTheme.typography.headlineMedium
         )
 
         OutlinedTextField(
-            value = state.fullName,
-            onValueChange = { component.updateFullName(it) },
-            label = { Text("Full Name") },
-            modifier = Modifier.fillMaxWidth()
+            value = profileData.fullName,
+            onValueChange = { updateFullName(it) },
+            label = { Text("Имя") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
         )
 
-        // Birthday selection
-        Text("Birthday")
         DatePickerField(
-            label = "Birthday",
+            label = "День рождения",
             onDateSelected = {
-                component.updateBirthday(it)
+                updateBirthday(it)
             },
         )
 
         // Gender selection from API
-        Text("Gender")
+
         if (genders.isNotEmpty()) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                genders.forEach { gender ->
-                    FilterChip(
-                        selected = state.gender == gender.code,
-                        onClick = { component.updateGender(gender.code) },
-                        label = { Text(gender.label) }
-                    )
+            Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically) {
+                Text("Пол")
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    genders.forEach { gender ->
+                        FilterChip(
+                            selected = profileData.gender == gender.code,
+                            onClick = { updateGender(gender.code) },
+                            label = { Text(gender.label) }
+                        )
+                    }
                 }
             }
+
+
+
         } else {
             CircularProgressIndicator(modifier = Modifier.size(24.dp))
         }
 
         // City selection with dropdown
-        Box(
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            OutlinedTextField(
-                value = currentCityName.ifEmpty { citySearchQuery },
-                onValueChange = {
-                    citySearchQuery = it
-                    isDropdownExpanded = true
-                },
-                label = { Text("City") },
-                modifier = Modifier.fillMaxWidth(),
-                trailingIcon = {
-                    IconButton(onClick = { isDropdownExpanded = !isDropdownExpanded }) {
-                        Icon(
-                            imageVector = if (isDropdownExpanded)
-                                androidx.compose.material.icons.Icons.Filled.KeyboardArrowUp
-                            else
-                                androidx.compose.material.icons.Icons.Filled.KeyboardArrowDown,
-                            contentDescription = "Toggle dropdown"
-                        )
-                    }
-                }
-            )
-
-            DropdownMenu(
-                expanded = isDropdownExpanded,
-                onDismissRequest = { isDropdownExpanded = false },
-                modifier = Modifier.fillMaxWidth(0.9f)
-            ) {
-                val filteredCities = cities.filter {
-                    it.name.contains(citySearchQuery, ignoreCase = true)
-                }
-
-                filteredCities.forEach { city ->
-                    DropdownMenuItem(
-                        onClick = {
-                            component.updateCityId(city.id)
-                            isDropdownExpanded = false
-                        },
-                        text = { Text(city.name) }
-                    )
-                }
-
-                if (filteredCities.isEmpty() && cities.isNotEmpty()) {
-                    DropdownMenuItem(
-                        onClick = { },
-                        text = { Text("No matching cities") },
-                        enabled = false
-                    )
-                }
-
-                if (cities.isEmpty()) {
-                    DropdownMenuItem(
-                        onClick = { },
-                        text = {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp))
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Loading cities...")
-                            }
-                        },
-                        enabled = false
-                    )
-                }
-            }
-        }
+        CityPicker(cities, profileData.cityId, onCitySelected = { cityID ->
+            updateCityId(cityID)
+        })
 
         Spacer(modifier = Modifier.weight(1f))
 
         Button(
-            onClick = { component.next() },
+            onClick = next,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
-            enabled = component.isCompleted
+            enabled = isCompleted
         ) {
-            Text("Continue")
+            Text("Продолжить")
         }
     }
 }

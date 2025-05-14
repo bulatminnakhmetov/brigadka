@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -24,6 +25,7 @@ import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.presentation.profile.common.Avatar
 import com.brigadka.app.presentation.profile.common.LoadableValue
 import com.brigadka.app.data.repository.ProfileView
+import com.brigadka.app.presentation.common.getYearsPostfix
 import com.brigadka.app.presentation.profile.common.VideoSection
 
 @Composable
@@ -154,7 +156,7 @@ fun ProfileViewScreen(
             mediaItem = profileView.avatar,
             isUploading = false,
             onError = onError,
-            modifier = Modifier.padding(vertical = 16.dp)
+            modifier = Modifier.padding(vertical = 16.dp).size(150.dp)
         )
 
         // Name and basic info
@@ -182,7 +184,7 @@ fun ProfileViewScreen(
 
             profileView.age?.let {
                 Text(
-                    text = " • ${profileView.age} years old",
+                    text = " • ${profileView.age} ${getYearsPostfix(profileView.age)}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -204,9 +206,13 @@ fun ProfileViewScreen(
             if (onContactClick != null) {
                 Button(
                     onClick = { onContactClick() },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 ) {
-                    Text("Contact")
+                    Text("Написать", style = MaterialTheme.typography.titleMedium)
                 }
             }
         }
@@ -215,7 +221,7 @@ fun ProfileViewScreen(
 
         // Bio section
         if (profileView.bio.isNotEmpty()) {
-            SectionTitle(title = "Bio")
+            SectionTitle(title = "О себе")
             Text(
                 text = profileView.bio,
                 style = MaterialTheme.typography.bodyLarge,
@@ -226,74 +232,12 @@ fun ProfileViewScreen(
             Spacer(modifier = Modifier.height(16.dp))
         }
 
-        // Improv details section
-        SectionTitle(title = "Improv details")
 
-        // Goal
-        profileView.goalLabel?.let {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 4.dp)
-            ) {
-                Text(
-                    text = "Goal: ",
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-                )
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            }
-        }
-
-        // Looking for team
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp)
-        ) {
-            Text(
-                text = "Looking for team: ",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
-            )
-            Text(
-                text = if (profileView.lookingForTeam) "Yes" else "No",
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-        // Improv styles
-        if (profileView.improvStylesLabels.isNotEmpty()) {
-            Text(
-                text = "Styles:",
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp)
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Start
-            ) {
-                profileView.improvStylesLabels.joinToString(", ").let {
-                    Text(
-                        text = it,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
 
         // Videos section
         if (profileView.videos.isNotEmpty()) {
-            SectionTitle(title = "Videos")
+            SectionTitle(title = "Видео")
+            Spacer(modifier = Modifier.height(16.dp))
             VideoSection(
                 videos = profileView.videos.map { LoadableValue(value = it) },
                 onError = onError,
@@ -301,22 +245,24 @@ fun ProfileViewScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        // Edit profile button for the current user
-        if (isEditable) {
-            Button(
-                onClick = { onEditProfile() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Edit Profile"
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Edit Profile")
-            }
+        // Improv details section
+        SectionTitle(title = "Импровизация")
+
+        // Goal
+        profileView.goalLabel?.let {
+            ProfileTextField("Цель", it)
         }
+
+        ProfileTextField("Ищу команду", if (profileView.lookingForTeam) "Да" else "Нет")
+
+        // Improv styles
+        if (profileView.improvStylesLabels.isNotEmpty()) {
+            ProfileTextField("Стили", profileView.improvStylesLabels.joinToString(", "))
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -329,6 +275,16 @@ private fun SectionTitle(title: String) {
             .fillMaxWidth()
             .padding(bottom = 8.dp)
     )
+}
+
+@Composable fun ProfileTextField(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Text(text = "$label: $value")
+    }
 }
 
 // Add to ProfileViewScreen.kt

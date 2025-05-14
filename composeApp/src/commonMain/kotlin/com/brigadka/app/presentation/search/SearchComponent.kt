@@ -143,16 +143,16 @@ class SearchComponent(
         _state.update {it.copy(improvStyleFilter = it.improvStyleFilter.toggle(style))}
     }
 
-    fun toggleLookingForTeam() {
-        _state.update { it.copy(lookingForTeamFilter = !it.lookingForTeamFilter) }
+    fun toggleLookingForTeam(value: Boolean) {
+        _state.update { it.copy(lookingForTeamFilter = value) }
     }
 
-    fun toggleHasAvatar() {
-        _state.update { it.copy(hasAvatarFilter = !it.hasAvatarFilter) }
+    fun toggleHasAvatar(value: Boolean) {
+        _state.update { it.copy(hasAvatarFilter = value) }
     }
 
-    fun toggleHasVideo() {
-        _state.update { it.copy(hasVideoFilter = !it.hasVideoFilter) }
+    fun toggleHasVideo(value: Boolean) {
+        _state.update { it.copy(hasVideoFilter = value) }
     }
 
     fun nextPage() {

@@ -1,12 +1,17 @@
 package com.brigadka.app.presentation.onboarding
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -22,6 +27,7 @@ import com.brigadka.app.presentation.onboarding.basic.BasicInfoScreen
 import com.brigadka.app.presentation.onboarding.media.MediaUploadScreen
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingContent(component: OnboardingComponent) {
     val childStack by component.childStack.subscribeAsState()
@@ -37,14 +43,13 @@ fun OnboardingContent(component: OnboardingComponent) {
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
+    ) { padding ->
+        Column(modifier = Modifier.padding(padding)) {
             LinearProgressIndicator(
                 progress = { (currentIndex + 1).toFloat() / totalSteps },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
             )
-        }
-    ) { padding ->
-        Box(modifier = Modifier.padding(padding)) {
+            Spacer(modifier = Modifier.height(8.dp))
             Children(
                 stack = childStack,
                 animation = stackAnimation(slide()),

@@ -21,6 +21,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
 import com.brigadka.app.data.notification.PushNotificationServiceAndroid
@@ -79,11 +81,11 @@ class MainActivity : ComponentActivity() {
 
         setLightStatusBar(window)
 
+        window.navigationBarColor = Color.parseColor("#fef7ff")
+
         koin.get<PushNotificationService>().requestNotificationPermission()
     }
 }
-
-
 
 fun setLightStatusBar(window: Window) {
     // Set a light background color for the status bar
