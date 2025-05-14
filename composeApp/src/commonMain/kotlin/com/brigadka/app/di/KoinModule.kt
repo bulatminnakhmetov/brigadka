@@ -51,7 +51,8 @@ typealias CreateProfileViewComponent = (
     context: ComponentContext,
     userID: Int?,
     onEditProfile: () -> Unit,
-    onContactClick: (String) -> Unit
+    onContactClick: (String) -> Unit,
+    onBackClick: () -> Unit,
         ) -> ProfileViewComponent
 
 typealias CreateChatComponent = (
@@ -171,15 +172,18 @@ val commonModule = module {
                   userID: Int?,
                   onEditProfile: () -> Unit,
                   onContactClick: (String) -> Unit,
+                  onBackClick: () ->Unit,
     ) ->
         ProfileViewComponent(
             componentContext = context,
             brigadkaApiService = get(),
             profileRepository = get(),
             userDataRepository = get(),
+            sessionManager = get(),
             userID = userID,
             onEditProfile = onEditProfile,
             onContactClick = onContactClick,
+            onBackClick = onBackClick
         )
     }
 
@@ -216,8 +220,8 @@ val commonModule = module {
     factory { (mainContext: ComponentContext) ->
         MainComponent(
             componentContext = mainContext,
-            createProfileViewComponent = { context, userID, onEditProfile, onContactClick ->
-                get<ProfileViewComponent> { parametersOf(context, userID, onEditProfile, onContactClick) }
+            createProfileViewComponent = { context, userID, onEditProfile, onContactClick, onBackClick ->
+                get<ProfileViewComponent> { parametersOf(context, userID, onEditProfile, onContactClick, onBackClick) }
             },
             createSearchComponent = { context, onProfileClick ->
                 get<SearchComponent> { parametersOf(context, onProfileClick) }

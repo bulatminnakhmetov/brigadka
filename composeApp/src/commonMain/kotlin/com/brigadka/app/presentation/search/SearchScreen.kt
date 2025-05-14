@@ -26,12 +26,11 @@ import com.brigadka.app.data.repository.SearchResult
 @Composable
 fun SearchScreen(component: SearchComponent) {
     val state by component.state.subscribeAsState()
-    var showFilters by remember { mutableStateOf(false) }
 
     SearchScreen(
         state = state,
-        showFilters = showFilters,
-        onToggleFilters = { showFilters = !showFilters },
+        showFilters = state.showFilters,
+        onToggleFilters = component::toggleFilters,
         onUpdateAgeRange = component::updateAgeRange,
         onUpdateCityFilter = component::updateCityFilter,
         onToggleGender = component::toggleGender,
@@ -41,8 +40,6 @@ fun SearchScreen(component: SearchComponent) {
         onToggleHasAvatar = component::toggleHasAvatar,
         onToggleHasVideo = component::toggleHasVideo,
         onResetFilters = component::resetFilters,
-        onUpdateNameFilter = component::updateNameFilter,
-        onSearch = component::performSearch,
         onPreviousPage = component::previousPage,
         onNextPage = component::nextPage,
         onProfileClick = component::onProfileClick
@@ -50,7 +47,7 @@ fun SearchScreen(component: SearchComponent) {
 }
 
 @Composable
-fun SearchScreenPreview() {
+fun SearchScreenPreview(showFilters: Boolean) {
     val profiles = listOf(
         ProfileView(
             userID = 1,
@@ -130,7 +127,7 @@ fun SearchScreenPreview() {
 
     SearchScreen(
         state = state,
-        showFilters = true,
+        showFilters = showFilters,
         onToggleFilters = { },
         onUpdateAgeRange = { _, _ -> },
         onUpdateCityFilter = { },
@@ -141,8 +138,6 @@ fun SearchScreenPreview() {
         onToggleHasAvatar = { },
         onToggleHasVideo = { },
         onResetFilters = { },
-        onUpdateNameFilter = { },
-        onSearch = { },
         onPreviousPage = { },
         onNextPage = { },
         onProfileClick = { }
@@ -163,140 +158,118 @@ fun SearchScreen(
     onToggleHasAvatar: () -> Unit,
     onToggleHasVideo: () -> Unit,
     onResetFilters: () -> Unit,
-    onUpdateNameFilter: (String) -> Unit,
-    onSearch: () -> Unit,
     onPreviousPage: () -> Unit,
     onNextPage: () -> Unit,
     onProfileClick: (Int) -> Unit
 ) {
-    Scaffold(
-        topBar = {
-            SearchTopBar(
-                query = state.nameFilter ?: "",
-                onQueryChange = onUpdateNameFilter,
-                onSearch = onSearch,
-                onToggleFilters = onToggleFilters
+    if (showFilters) {
+        SearchFilters(
+            state = state,
+            onAgeRangeChange = onUpdateAgeRange,
+            onCityChange = onUpdateCityFilter,
+            onToggleGender = onToggleGender,
+            onToggleGoal = onToggleGoal,
+            onToggleImprovStyle = onToggleImprovStyle,
+            onLookingForTeamToggle = onToggleLookingForTeam,
+            onHasAvatarToggle = onToggleHasAvatar,
+            onHasVideoToggle = onToggleHasVideo,
+            onReset = onResetFilters,
+        )
+    }
+
+    if (state.isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else if (state.error != null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = state.error,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.error
             )
         }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
-            if (showFilters) {
-                SearchFilters(
-                    state = state,
-                    onAgeRangeChange = onUpdateAgeRange,
-                    onCityChange = onUpdateCityFilter,
-                    onToggleGender = onToggleGender,
-                    onToggleGoal = onToggleGoal,
-                    onToggleImprovStyle = onToggleImprovStyle,
-                    onLookingForTeamToggle = onToggleLookingForTeam,
-                    onHasAvatarToggle = onToggleHasAvatar,
-                    onHasVideoToggle = onToggleHasVideo,
-                    onReset = onResetFilters,
-                )
-            }
-
-            if (state.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            } else if (state.error != null) {
+    } else {
+        val searchResults = state.searchResult
+        if (searchResults != null) {
+            if (searchResults.profiles.isEmpty()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = state.error,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.error
+                        text = "No profiles found matching your criteria",
+                        style = MaterialTheme.typography.bodyLarge
                     )
                 }
             } else {
-                val searchResults = state.searchResult
-                if (searchResults != null) {
-                    if (searchResults.profiles.isEmpty()) {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "No profiles found matching your criteria",
-                                style = MaterialTheme.typography.bodyLarge
-                            )
-                        }
-                    } else {
-                        Column {
-                            Text(
-                                text = "Found ${searchResults.totalCount} profiles",
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
+                Column {
+                    Text(
+                        text = "Found ${searchResults.totalCount} profiles",
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
 
-                            LazyColumn(
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                items(searchResults.profiles) { profile ->
-                                    ProfileCard(profile, onClick = { onProfileClick(profile.userID) })
-                                    HorizontalDivider()
-                                }
-                            }
-
-                            // Pagination controls
-                            SearchPagination(
-                                currentPage = searchResults.page,
-                                totalPages = (searchResults.totalCount / searchResults.pageSize) + 1,
-                                onPreviousPage = onPreviousPage,
-                                onNextPage = onNextPage
-                            )
+                    LazyColumn(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        items(searchResults.profiles) { profile ->
+                            ProfileCard(profile, onClick = { onProfileClick(profile.userID) })
+                            HorizontalDivider()
                         }
                     }
+
+                    // Pagination controls
+                    SearchPagination(
+                        currentPage = searchResults.page,
+                        totalPages = (searchResults.totalCount / searchResults.pageSize) + 1,
+                        onPreviousPage = onPreviousPage,
+                        onNextPage = onNextPage
+                    )
                 }
             }
         }
     }
 }
-
+// Update SearchTopBar to accept SearchTabState instead of individual parameters
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchTopBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onSearch: () -> Unit,
-    onToggleFilters: () -> Unit
+    state: SearchTopBarState
 ) {
     TopAppBar(
         title = {
             OutlinedTextField(
-                value = query,
-                onValueChange = onQueryChange,
+                value = state.query,
+                onValueChange = state.onQueryChange,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 placeholder = { Text("Search profiles...") },
                 singleLine = true,
                 trailingIcon = {
-                    if (query.isNotEmpty()) {
+                    if (state.query.isNotEmpty()) {
                         Icon(
                             imageVector = Icons.Default.Clear,
                             contentDescription = "Clear",
-                            modifier = Modifier.clickable { onQueryChange("") }
+                            modifier = Modifier.clickable { state.onQueryChange("") }
                         )
                     }
                 }
             )
         },
         actions = {
-            IconButton(onClick = onSearch) {
+            IconButton(onClick = state.onSearch) {
                 Icon(Icons.Default.Search, contentDescription = "Search")
             }
-            IconButton(onClick = onToggleFilters) {
-                Icon(Icons.Default.Menu, contentDescription = "Filters") // TODO: replace with a better icon
+            IconButton(onClick = state.onToggleFilters) {
+                Icon(Icons.Default.Menu, contentDescription = "Filters")
             }
         }
     )

@@ -50,13 +50,11 @@ fun ChatContentPreview() {
 
     ChatContent(uiState, onBackClick = {}, onSendMessage = {})
 }
-
 @Composable
 fun ChatContent(uiState: ChatComponent.ChatUiState, onBackClick: () -> Unit, onSendMessage: suspend (String) -> Unit) {
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var messageText by remember { mutableStateOf("") }
-//    var isTyping by remember { mutableStateOf(false) }
 
     // Scroll to bottom when new messages arrive
     LaunchedEffect(uiState.messages.size) {
@@ -65,33 +63,8 @@ fun ChatContent(uiState: ChatComponent.ChatUiState, onBackClick: () -> Unit, onS
         }
     }
 
-    // Handle typing indicator
-//    LaunchedEffect(messageText) {
-//        if (messageText.isNotEmpty() && !isTyping) {
-//            isTyping = true
-//            component.sendTypingIndicator(true)
-//        } else if (messageText.isEmpty() && isTyping) {
-//            isTyping = false
-//            component.sendTypingIndicator(false)
-//        }
-//    }
-
-    // Observe typing indicators
-//    LaunchedEffect(Unit) {
-//        component.typingUsers.collectLatest { typingUsers ->
-//            // You could display typing indicators here
-//        }
-//    }
-
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Chat header
-            ChatHeader(
-                title = uiState.chatName,
-                isOnline = uiState.isOnline,
-                onBackClick = onBackClick
-            )
-
             // Messages list
             LazyColumn(
                 modifier = Modifier
@@ -107,7 +80,6 @@ fun ChatContent(uiState: ChatComponent.ChatUiState, onBackClick: () -> Unit, onS
                         message = message,
                         isFromCurrentUser = message.sender_id == uiState.currentUserId,
                         onReactionClick = {}
-//                        onReactionClick = { component.toggleReaction(message.message_id, "👍") }
                     )
                 }
             }
@@ -144,62 +116,11 @@ fun ChatContent(uiState: ChatComponent.ChatUiState, onBackClick: () -> Unit, onS
     }
 }
 
-@Composable
-private fun ChatHeader(
-    title: String,
-    isOnline: Boolean,
-    onBackClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shadowElevation = 4.dp
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onBackClick) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack, // Replace with back icon
-                    contentDescription = "Back",
-                )
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium
-                )
-
-//                Row(verticalAlignment = Alignment.CenterVertically) {
-//                    Box(
-//                        modifier = Modifier
-//                            .size(8.dp)
-//                            .background(
-//                                color = if (isOnline)
-//                                    MaterialTheme.colorScheme.primary
-//                                else
-//                                    MaterialTheme.colorScheme.outline,
-//                                shape = CircleShape
-//                            )
-//                    )
-//
-//                    Spacer(modifier = Modifier.width(4.dp))
-//
-//                    Text(
-//                        text = if (isOnline) "Online" else "Offline",
-//                        style = MaterialTheme.typography.bodySmall,
-//                        color = MaterialTheme.colorScheme.onSurfaceVariant
-//                    )
-//                }
-            }
-        }
-    }
-}
+data class ChatTopBarState(
+    val chatName: String,
+    val isOnline: Boolean,
+    val onBackClick: () -> Unit
+)
 
 @Composable
 private fun MessageBubble(
@@ -314,4 +235,52 @@ private fun ConnectionStatusBanner() {
             modifier = Modifier.padding(16.dp)
         )
     }
+}
+
+// Add to ChatContent.kt
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatTopBar(state: ChatTopBarState) {
+    CenterAlignedTopAppBar(
+        title = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = state.chatName,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (state.isOnline) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(
+                                    color = if (state.isOnline)
+                                        MaterialTheme.colorScheme.primary
+                                    else
+                                        MaterialTheme.colorScheme.outline,
+                                    shape = CircleShape
+                                )
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = if (state.isOnline) "Online" else "Offline",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        navigationIcon = {
+            IconButton(onClick = state.onBackClick) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Back"
+                )
+            }
+        }
+    )
 }

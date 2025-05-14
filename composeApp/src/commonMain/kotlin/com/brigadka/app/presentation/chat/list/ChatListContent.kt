@@ -169,3 +169,16 @@ private fun ChatItem(
         }
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ChatListTopBar() {
+    CenterAlignedTopAppBar(
+        title = {
+            Text(
+                text = "Чаты",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+    )
+}

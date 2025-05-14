@@ -7,9 +7,6 @@ import com.brigadka.app.data.api.models.ChatMessage as ChatMessageApi
 import com.brigadka.app.data.api.websocket.ChatMessage as ChatMessageWS
 import com.brigadka.app.data.api.websocket.ChatWebSocketClient
 import com.brigadka.app.data.repository.UserDataRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -25,18 +22,31 @@ class ChatComponent(
     private val onBackClick: () -> Unit
 ) : ComponentContext by componentContext {
 
-    private val job = SupervisorJob()
     private val scope = coroutineScope()
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
-    // Track users who are currently typing
-//    private val _typingUsers = MutableStateFlow<Map<Int, Long>>(mapOf())
-//    val typingUsers = _typingUsers
-//        .map { it.keys }
-//        .stateIn(coroutineScope, SharingStarted.WhileSubscribed(5000), emptySet())
+    private val _topBarState = MutableStateFlow(
+        ChatTopBarState(
+            chatName = _uiState.value.chatName,
+            isOnline = _uiState.value.isOnline,
+            onBackClick = onBackClick
+        )
+    )
+    val topBarState: StateFlow<ChatTopBarState> = _topBarState.asStateFlow()
 
+    init {
+        scope.launch {
+            uiState.collect { state ->
+                _topBarState.value = ChatTopBarState(
+                    chatName = state.chatName,
+                    isOnline = state.isOnline,
+                    onBackClick = onBackClick
+                )
+            }
+        }
+    }
     // Keep track of pending messages
     private val pendingMessages = mutableMapOf<String, Message>()
 
@@ -107,17 +117,6 @@ class ChatComponent(
                 }
             }
         }
-
-        // Clean up typing users after timeout
-//        coroutineScope.launch {
-//            while (true) {
-//                kotlinx.coroutines.delay(5000)
-//                val now = System.currentTimeMillis()
-//                _typingUsers.update { typingMap ->
-//                    typingMap.filterValues { timestamp -> now - timestamp < 5000 }
-//                }
-//            }
-//        }
     }
 
     fun onBack() {
@@ -149,48 +148,11 @@ class ChatComponent(
                 state.copy(messages = updatedMessages)
             }
 
-            // Also send using REST API as a fallback
-//            coroutineScope.launch {
-//                try {
-//                    api.sendMessage(chatId, SendMessageRequest(messageId, content))
-//                } catch (e: Exception) {
-//                    // Handle API error
-//                }
-//            }
+
 
         } catch (e: Exception) {
-            // TODO: Handle sending error
+            // TODO: Handle sending error, try to send with http
         }
-    }
-
-//    fun sendTypingIndicator(isTyping: Boolean) {
-//        coroutineScope.launch {
-//            try {
-//                webSocketClient.sendTypingIndicator(chatId, isTyping)
-//            } catch (e: Exception) {
-//                // Ignore errors for typing indicators
-//            }
-//        }
-//    }
-//
-//    fun toggleReaction(messageId: String, reactionCode: String) {
-//        // Implement reaction toggle logic
-//        // First check if user already reacted with this code, then either add or remove
-//        coroutineScope.launch {
-//            try {
-//                api.addReaction(messageId, com.brigadka.app.data.api.models.AddReactionRequest(reactionCode))
-//            } catch (e: Exception) {
-//                // Handle error
-//            }
-//        }
-//    }
-
-    // TODO: how should i use this???
-    fun onDestroy() {
-        scope.launch {
-            webSocketClient.disconnect()
-        }
-        job.cancel()
     }
 
     data class ChatUiState(

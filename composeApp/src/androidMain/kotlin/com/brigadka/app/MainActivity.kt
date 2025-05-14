@@ -74,18 +74,7 @@ class MainActivity : ComponentActivity() {
             }
 
         setContent {
-            AppTheme {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(WindowInsets.safeDrawing.asPaddingValues())
-                    ) {
-                        RootContent(rootComponent)
-                    }
-                }
-
-            }
+            RootContent(rootComponent, modifier = Modifier.fillMaxSize())
         }
 
         setLightStatusBar(window)
@@ -94,13 +83,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// A small theme wrapper for consistency
-@Composable
-fun AppTheme(content: @Composable () -> Unit) {
-    MaterialTheme {
-        content()
-    }
-}
+
 
 fun setLightStatusBar(window: Window) {
     // Set a light background color for the status bar

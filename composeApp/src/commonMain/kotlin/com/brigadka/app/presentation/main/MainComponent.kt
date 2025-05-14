@@ -42,9 +42,10 @@ class MainComponent(
         componentContext: ComponentContext
     ): Child = when (configuration) {
         is Config.Profile -> Child.Profile(
-            createProfileViewComponent(componentContext, configuration.userID, {}, { chatID ->
-                navigateToChat(chatID)
-            })
+            createProfileViewComponent(componentContext, configuration.userID, {},
+                { chatID -> navigateToChat(chatID) },
+                { mainNavigation.pop() }
+            )
         )
         is Config.Search -> Child.Search(
             createSearchComponent(componentContext, { userID ->

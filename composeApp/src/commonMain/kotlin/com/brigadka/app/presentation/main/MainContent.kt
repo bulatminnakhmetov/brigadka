@@ -18,13 +18,12 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import brigadka.composeapp.generated.resources.Res
-import brigadka.composeapp.generated.resources.chat_24px
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
@@ -32,35 +31,43 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.scale
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
 import com.brigadka.app.presentation.chat.conversation.ChatContent
+import com.brigadka.app.presentation.chat.conversation.ChatTopBar
 import com.brigadka.app.presentation.chat.list.ChatListContent
+import com.brigadka.app.presentation.chat.list.ChatListTopBar
 import com.brigadka.app.presentation.profile.view.ProfileViewScreen
+import com.brigadka.app.presentation.profile.view.ProfileViewTopBar
 import com.brigadka.app.presentation.search.SearchScreen
+import com.brigadka.app.presentation.search.SearchTopBar
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.vectorResource
 
 @Composable
 fun MainContent(component: MainComponent) {
     val childStack by component.childStack.subscribeAsState()
-
     val snackbarHostState = remember { SnackbarHostState() }
-
     val coroutineScope = rememberCoroutineScope()
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = {
-            BrigadkaBottomBar(
-                onProfileClick = component::navigateToProfile,
-                onSearchClick = component::navigateToSearch,
-                onChatListClick = component::navigateToChatList,
-            )
+    val activeChild = childStack.active.instance
+
+    val topBar: @Composable () -> Unit = {
+        when (activeChild) {
+            is Child.Search -> SearchTopBar(state = activeChild.component.topBarState)
+            is Child.Profile -> ProfileViewTopBar(state = activeChild.component.topBarState)
+            is Child.ChatList -> ChatListTopBar()
+            is Child.Chat -> {
+                val topBarState by activeChild.component.topBarState.collectAsState()
+                ChatTopBar(state = topBarState)
+            }
+            else -> {}
         }
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-        ) {
+    }
+
+    MainContent(
+        topBar = topBar,
+        snackbarHostState = snackbarHostState,
+        onProfileClick = component::navigateToProfile,
+        onSearchClick = component::navigateToSearch,
+        onChatListClick = component::navigateToChatList,
+        content = {
             Children(
                 stack = childStack,
                 animation = stackAnimation(fade() + scale()),
@@ -82,9 +89,38 @@ fun MainContent(component: MainComponent) {
                 }
             }
         }
-    }
+    )
 }
 
+@Composable
+fun MainContent(
+    topBar: @Composable () -> Unit,
+    snackbarHostState: SnackbarHostState,
+    onProfileClick: () -> Unit,
+    onSearchClick: () -> Unit,
+    onChatListClick: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = topBar,
+        bottomBar = {
+            BrigadkaBottomBar(
+                onProfileClick = onProfileClick,
+                onSearchClick = onSearchClick,
+                onChatListClick = onChatListClick,
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
+            content()
+        }
+    }
+}
 
 @Composable
 fun BrigadkaBottomBar(
@@ -124,8 +160,26 @@ fun BrigadkaBottomBar(
                 selectedTab = 2
                 onChatListClick()
             },
-            icon = { Icon(Icons.Default.Email, contentDescription = "Chat") }, // TODO: replace with normal icon
+            icon = { Icon(Icons.Default.Email, contentDescription = "Chat") },
             label = { Text("Chat") }
         )
     }
+}
+
+@Composable
+fun MainContentPreview() {
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    MainContent(
+        topBar = ({ Text("Top Bar") }),
+        snackbarHostState = snackbarHostState,
+        onProfileClick = {},
+        onSearchClick = {},
+        onChatListClick = {},
+        content = {
+            Box(modifier = Modifier.fillMaxSize()) {
+                Text("Content goes here")
+            }
+        }
+    )
 }

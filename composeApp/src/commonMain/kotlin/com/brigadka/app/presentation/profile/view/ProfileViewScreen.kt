@@ -4,10 +4,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -321,5 +328,61 @@ private fun SectionTitle(title: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 8.dp)
+    )
+}
+
+// Add to ProfileViewScreen.kt
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProfileViewTopBar(state: ProfileViewTopBarState) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    CenterAlignedTopAppBar(
+        title = { Text("Профиль") },
+        navigationIcon = {
+            if (!state.isCurrentUser) {
+                IconButton(onClick = state.onBackClick) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
+            }
+        },
+        actions = {
+            if (state.isCurrentUser) {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = "More options"
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Edit Profile") },
+                        onClick = {
+                            showMenu = false
+                            state.onEditProfile()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Edit, contentDescription = null)
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Logout") },
+                        onClick = {
+                            showMenu = false
+                            state.onLogout()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Close, contentDescription = null)
+                        }
+                    )
+                }
+            }
+        }
     )
 }

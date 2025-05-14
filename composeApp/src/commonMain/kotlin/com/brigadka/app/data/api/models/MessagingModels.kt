@@ -21,13 +21,6 @@ data class ChatMessage(
 )
 
 @Serializable
-data class CreateChatRequest(
-    val chat_id: String? = null,
-    val chat_name: String,
-    val participants: List<Int>
-)
-
-@Serializable
 data class SendMessageRequest(
     val message_id: String? = null,
     val content: String

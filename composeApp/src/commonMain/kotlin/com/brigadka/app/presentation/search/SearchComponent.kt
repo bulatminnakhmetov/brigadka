@@ -9,12 +9,18 @@ import com.brigadka.app.data.api.models.City
 import com.brigadka.app.data.api.models.StringItem
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.SearchResult
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+data class SearchTopBarState(
+    val query: String,
+    val onQueryChange: (String) -> Unit,
+    val onSearch: () -> Unit,
+    val onToggleFilters: () -> Unit
+)
 
 class SearchComponent(
     componentContext: ComponentContext,
@@ -25,8 +31,20 @@ class SearchComponent(
     private val _state = MutableValue(SearchState())
     val state: Value<SearchState> get() = _state
 
+    val topBarState: SearchTopBarState
+        get() = SearchTopBarState(
+            query = _state.value.nameFilter ?: "",
+            onQueryChange = ::updateNameFilter,
+            onSearch = ::performSearch,
+            onToggleFilters = ::toggleFilters
+        )
+
     private val coroutineScope = coroutineScope()
     private var searchJob: Job? = null
+
+    fun toggleFilters() {
+        _state.update { it.copy(showFilters = !it.showFilters) }
+    }
 
     init {
         loadReferenceData()
@@ -199,6 +217,8 @@ data class Option (
 data class SearchState(
     // Reference data
     val cities: List<City> = emptyList(),
+
+    val showFilters: Boolean = false,
 
     // Filter values
     val nameFilter: String? = null,

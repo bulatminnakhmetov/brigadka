@@ -7,8 +7,16 @@ import com.brigadka.app.presentation.search.SearchScreenPreview
 
 @Preview
 @Composable
-fun SearchScreenPreviewPreview() {
+fun SearchScreenPreviewWithFilters() {
     Surface {
-        SearchScreenPreview()
+        SearchScreenPreview(true)
+    }
+}
+
+@Preview
+@Composable
+fun SearchScreenPreviewWithoutFilters() {
+    Surface {
+        SearchScreenPreview(false)
     }
 }
