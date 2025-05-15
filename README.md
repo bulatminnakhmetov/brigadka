@@ -1,14 +1,43 @@
-This is a Kotlin Multiplatform project targeting Android, iOS.
+# Brigadka App
 
-* `/composeApp` is for code that will be shared across your Compose Multiplatform applications.
-  It contains several subfolders:
-  - `commonMain` is for code that’s common for all targets.
-  - Other folders are for Kotlin code that will be compiled for only the platform indicated in the folder name.
-    For example, if you want to use Apple’s CoreCrypto for the iOS part of your Kotlin app,
-    `iosMain` would be the right folder for such calls.
+Brigadka is a mobile application designed for improv performers to create profiles, search for teammates, and connect with other improvisers.
 
-* `/iosApp` contains iOS applications. Even if you’re sharing your UI with Compose Multiplatform, 
-  you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
+## Features
 
+- **User Profiles**: Create and manage your improv performer profile with personal information, bio, and media
+- **Profile Discovery**: Search for other improvisers based on various criteria including location, age, and improv styles
+- **Media Sharing**: Upload avatar images and videos to showcase your performances
+- **Messaging**: Contact other users directly through the application
 
-Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-multiplatform-dev/get-started.html)…# brigadka
+## Technical Implementation
+
+The app is built using Kotlin Multiplatform with Compose Multiplatform for the UI layer. This enables sharing code across Android and iOS platforms while maintaining a native user experience.
+
+### Key components:
+
+- **API Service**: Communicates with the backend for data retrieval and user authentication
+- **Repository Pattern**: Abstracts the data sources and provides clean interfaces for the presentation layer
+- **Coroutines**: Handles asynchronous operations efficiently
+- **Compose UI**: Implements a modern, declarative UI with support for theming
+
+## Project Structure
+
+- **data**: Contains API models, repositories, and data sources
+- **domain**: Business logic and use cases
+- **presentation**: UI components, view models, and screens
+- **common**: Shared utilities and extensions
+
+## Development Setup
+
+1. Clone the repository
+2. Open the project in Android Studio
+3. Sync Gradle files
+4. Run the app on your preferred device or emulator
+
+## Dependencies
+
+- Kotlin Multiplatform
+- Compose Multiplatform
+- Ktor for networking
+- KotlinX Serialization
+- Kermit for logging
