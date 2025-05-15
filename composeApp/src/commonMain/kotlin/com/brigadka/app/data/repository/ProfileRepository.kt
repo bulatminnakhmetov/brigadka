@@ -25,6 +25,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Clock
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 
 private val logger = Logger.withTag("ProfileRepository")
 
@@ -203,7 +207,7 @@ class ProfileRepositoryImpl(
         return ProfileView(
             userID = profile.user_id,
             fullName = profile.full_name,
-            age = 10,
+            age = calculateAge(profile.birthday),
             genderLabel = genders.find { it.code == profile.gender }?.label,
             cityLabel = cities.find { it.id == profile.city_id }?.name,
             bio = profile.bio,
@@ -239,3 +243,16 @@ data class SearchResult(
     val pageSize: Int,
     val totalCount: Int
 )
+
+fun calculateAge(birthday: LocalDate): Int {
+    val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+
+    var age = today.year - birthday.year
+    if (
+        today.monthNumber < birthday.monthNumber ||
+        (today.monthNumber == birthday.monthNumber && today.dayOfMonth < birthday.dayOfMonth)
+    ) {
+        age--
+    }
+    return age
+}
