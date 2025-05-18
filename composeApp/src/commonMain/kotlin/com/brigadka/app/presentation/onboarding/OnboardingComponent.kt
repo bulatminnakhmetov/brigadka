@@ -13,7 +13,7 @@ import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.api.models.ProfileCreateRequest
 import com.brigadka.app.data.repository.MediaRepository
 import com.brigadka.app.data.repository.ProfileRepository
-import com.brigadka.app.data.repository.UserDataRepository
+import com.brigadka.app.data.repository.UserRepository
 import com.brigadka.app.presentation.onboarding.improv.ImprovInfoComponent
 import com.brigadka.app.presentation.onboarding.basic.BasicInfoComponent
 import com.brigadka.app.presentation.onboarding.media.MediaUploadComponent
@@ -29,7 +29,7 @@ class OnboardingComponent(
     componentContext: ComponentContext,
     private val mediaRepository: MediaRepository,
     private val profileRepository: ProfileRepository,
-    private val userDataRepository: UserDataRepository,
+    private val userRepository: UserRepository,
     private val onFinished: () -> Unit
 ) : ComponentContext by componentContext {
 
@@ -94,7 +94,7 @@ class OnboardingComponent(
 
     private fun completeOnboarding() {
         scope.launch {
-            val userId = userDataRepository.requireUserId()
+            val userId = userRepository.requireUserId()
 
             val request = ProfileCreateRequest(
                 user_id = userId,

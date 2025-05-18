@@ -3,13 +3,10 @@ package com.brigadka.app.domain.session
 import com.brigadka.app.data.api.BrigadkaApiServiceUnauthorized
 import com.brigadka.app.data.api.models.LoginRequest
 import com.brigadka.app.data.api.models.RegisterRequest
-import com.brigadka.app.data.api.push.PushTokenRegistrator
 import com.brigadka.app.data.repository.AuthTokenRepository
-import com.brigadka.app.data.repository.PushTokenRepository
 import com.brigadka.app.data.repository.Token
-import com.brigadka.app.data.repository.UserDataRepository
+import com.brigadka.app.data.repository.UserRepository
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -41,11 +38,11 @@ class SessionManagerImpl(
     private val scope: CoroutineScope,
     private val apiService: BrigadkaApiServiceUnauthorized,
     private val authTokenRepository: AuthTokenRepository,
-    private val userDataRepository: UserDataRepository,
+    private val userRepository: UserRepository,
 ) : SessionManager {
 
     private val _loggingState: MutableStateFlow<LoggingState> = MutableStateFlow(
-        if (userDataRepository.isLoggedIn) {
+        if (userRepository.isLoggedIn) {
             LoggingState.LoggedIn
         } else {
             LoggingState.LoggedOut
@@ -69,7 +66,7 @@ class SessionManagerImpl(
                 refreshToken = response.refresh_token
             )
             authTokenRepository.saveToken(token)
-            userDataRepository.setCurrentUserId(response.user_id)
+            userRepository.setCurrentUserId(response.user_id)
             _loggingState.value = LoggingState.LoggedIn
 
             AuthResult(
@@ -97,7 +94,7 @@ class SessionManagerImpl(
                 refreshToken = response.refresh_token
             )
             authTokenRepository.saveToken(token)
-            userDataRepository.setCurrentUserId(response.user_id)
+            userRepository.setCurrentUserId(response.user_id)
             _loggingState.value = LoggingState.LoggedIn
 
             AuthResult(
@@ -116,7 +113,7 @@ class SessionManagerImpl(
     // Also update logout to unregister the push token
     override suspend fun logout() {
         authTokenRepository.clearToken()
-        userDataRepository.clearCurrentUserId()
+        userRepository.clearCurrentUserId()
 
 
         scope.launch {
@@ -127,7 +124,7 @@ class SessionManagerImpl(
 
             // Now it's safe to clear token and session
             authTokenRepository.clearToken()
-            userDataRepository.clearCurrentUserId()
+            userRepository.clearCurrentUserId()
             _loggingState.value = LoggingState.LoggedOut
         }
     }

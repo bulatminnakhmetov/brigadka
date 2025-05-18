@@ -4,10 +4,8 @@ import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.useContents
 import kotlinx.cinterop.memScoped
-import kotlinx.cinterop.refTo
 import kotlinx.cinterop.usePinned
 import platform.AVFoundation.AVAsset
-import platform.AVFoundation.AVURLAsset
 import platform.CoreGraphics.CGRectMake
 import platform.CoreGraphics.CGSizeMake
 import platform.Foundation.NSData
@@ -22,12 +20,9 @@ import platform.UIKit.UIGraphicsGetImageFromCurrentImageContext
 import platform.UIKit.UIImage
 import platform.UIKit.UIImageJPEGRepresentation
 import platform.UIKit.UIImagePNGRepresentation
-import platform.darwin.NSObject
 import platform.Foundation.*
 import platform.AVFoundation.*
-import platform.CoreGraphics.*
 import platform.CoreMedia.*
-import platform.UIKit.*
 import kotlinx.cinterop.*
 
 private const val THUMBNAIL_SIZE = 256.0

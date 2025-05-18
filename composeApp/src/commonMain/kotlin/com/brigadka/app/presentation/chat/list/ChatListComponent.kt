@@ -6,10 +6,7 @@ import com.brigadka.app.data.api.BrigadkaApiService
 import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.data.api.websocket.ChatWebSocketClient
 import com.brigadka.app.data.repository.ProfileRepository
-import com.brigadka.app.data.repository.UserDataRepository
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
+import com.brigadka.app.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,7 +24,7 @@ class ChatListComponent(
     componentContext: ComponentContext,
     private val api: BrigadkaApiService,
     private val profileRepository: ProfileRepository,
-    private val userDataRepository: UserDataRepository,
+    private val userRepository: UserRepository,
     private val webSocketClient: ChatWebSocketClient,
     private val onChatSelected: (String) -> Unit
 ) : ComponentContext by componentContext {
@@ -67,7 +64,7 @@ class ChatListComponent(
                     var avatar: MediaItem? = null
 
                     if (!chat.is_group && chat.participants.isNotEmpty()) {
-                        val currentUserId = userDataRepository.requireUserId()
+                        val currentUserId = userRepository.requireUserId()
                         val otherParticipants = chat.participants.filter { it != currentUserId }
                         if (otherParticipants.isNotEmpty()) {
                             try {

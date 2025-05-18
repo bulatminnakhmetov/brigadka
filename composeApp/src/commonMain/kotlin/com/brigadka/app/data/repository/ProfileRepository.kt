@@ -16,12 +16,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,8 +45,6 @@ interface ProfileRepository {
     suspend fun getImprovGoals(): List<StringItem>
     suspend fun getImprovStyles(): List<StringItem>
 
-    // Search profiles
-    suspend fun searchProfiles(request: SearchRequest): SearchResult
     suspend fun searchProfiles(
         fullName: String? = null,
         ageMin: Int? = null,
@@ -72,7 +65,7 @@ class ProfileRepositoryImpl(
     coroutineScope: CoroutineScope,
     private val apiService: BrigadkaApiServiceAuthorized,
     private val sessionManager: SessionManager,
-    private val userDataRepository: UserDataRepository,
+    private val userRepository: UserRepository,
 ) : ProfileRepository {
 
     private val _currentUserProfile = MutableStateFlow<LoadableValue<ProfileView>>(LoadableValue(isLoading = false))
@@ -95,7 +88,7 @@ class ProfileRepositoryImpl(
     suspend fun loadUserProfile() {
         _currentUserProfile.update { it.copy(isLoading = true) }
         try {
-            val userID = userDataRepository.requireUserId()
+            val userID = userRepository.requireUserId()
             val profile = withContext(Dispatchers.IO) {
                 apiService.getProfile(userID)
             }
@@ -109,7 +102,7 @@ class ProfileRepositoryImpl(
 
     override suspend fun getProfileView(userId: Int?): ProfileView {
         val profile = withContext(Dispatchers.IO) {
-            apiService.getProfile(userId ?: userDataRepository.requireUserId())
+            apiService.getProfile(userId ?: userRepository.requireUserId())
         }
         return convertToProfileView(profile)
     }
@@ -182,7 +175,7 @@ class ProfileRepositoryImpl(
         return searchProfiles(request)
     }
 
-    override suspend fun searchProfiles(request: SearchRequest): SearchResult {
+    private suspend fun searchProfiles(request: SearchRequest): SearchResult {
         val response = apiService.searchProfiles(request)
 
         val profileViews = response.profiles.map { profile ->

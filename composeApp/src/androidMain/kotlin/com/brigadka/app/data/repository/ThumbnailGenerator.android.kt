@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory
 import android.media.MediaDataSource
 import android.media.MediaMetadataRetriever
 import android.media.ThumbnailUtils
-import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 
 private const val THUMBNAIL_SIZE = 256

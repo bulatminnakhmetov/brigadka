@@ -20,8 +20,8 @@ import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.ProfileRepositoryImpl
 import com.brigadka.app.data.api.push.PushTokenRegistrator
 import com.brigadka.app.data.api.push.PushTokenRegistratorImpl
-import com.brigadka.app.data.repository.UserDataRepository
-import com.brigadka.app.data.repository.UserDataRepositoryImpl
+import com.brigadka.app.data.repository.UserRepository
+import com.brigadka.app.data.repository.UserRepositoryImpl
 import com.brigadka.app.data.repository.Token
 import com.brigadka.app.data.repository.AuthTokenRepository
 import com.brigadka.app.data.repository.AuthTokenRepositoryImpl
@@ -84,7 +84,7 @@ val commonModule = module {
     single<AuthTokenRepository> { AuthTokenRepositoryImpl(get()) }
     single<PushTokenRepository> { PushTokenRepositoryImpl(get()) }
 
-    single<UserDataRepository> { UserDataRepositoryImpl(get()) }
+    single<UserRepository> { UserRepositoryImpl(get()) }
 
     // HTTP clients with named qualifiers
     single(named(HttpClientType.UNAUTHORIZED)) {
@@ -178,7 +178,7 @@ val commonModule = module {
             componentContext = context,
             brigadkaApiService = get(),
             profileRepository = get(),
-            userDataRepository = get(),
+            userRepository = get(),
             sessionManager = get(),
             userID = userID,
             onEditProfile = onEditProfile,
@@ -201,7 +201,7 @@ val commonModule = module {
             api = get(),
             profileRepository = get(),
             webSocketClient = get(),
-            userDataRepository = get(),
+            userRepository = get(),
             onChatSelected = onChatSelected
         )
     }
@@ -209,7 +209,7 @@ val commonModule = module {
     factory { (context: ComponentContext, chatID: String, onBackClick: () -> Unit) ->
         ChatComponent(
             componentContext = context,
-            userDataRepository = get(),
+            userRepository = get(),
             api = get(),
             webSocketClient = get(),
             chatID = chatID,
@@ -245,7 +245,7 @@ val commonModule = module {
             componentContext = context,
             mediaRepository = get(),
             profileRepository = get(),
-            userDataRepository = get(),
+            userRepository = get(),
             onFinished = onFinished
         )
     }

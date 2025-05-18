@@ -8,20 +8,14 @@ import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
 import com.brigadka.app.common.coroutineScope
-import com.brigadka.app.data.api.models.Profile
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.data.repository.ProfileRepository
-import com.brigadka.app.data.repository.UserDataRepository
 import com.brigadka.app.domain.session.LoggingState
 import com.brigadka.app.presentation.auth.AuthComponent
 import com.brigadka.app.presentation.onboarding.OnboardingComponent
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 

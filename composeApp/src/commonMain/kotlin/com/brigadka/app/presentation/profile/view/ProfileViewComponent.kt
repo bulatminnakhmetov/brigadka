@@ -9,11 +9,9 @@ import com.brigadka.app.data.api.BrigadkaApiService
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.presentation.profile.common.LoadableValue
 import com.brigadka.app.data.repository.ProfileView
-import com.brigadka.app.data.repository.UserDataRepository
+import com.brigadka.app.data.repository.UserRepository
 import com.brigadka.app.domain.session.SessionManager
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -27,7 +25,7 @@ data class ProfileViewTopBarState(
 class ProfileViewComponent(
     componentContext: ComponentContext,
     private val brigadkaApiService: BrigadkaApiService,
-    private val userDataRepository: UserDataRepository,
+    private val userRepository: UserRepository,
     private val profileRepository: ProfileRepository,
     private val sessionManager: SessionManager,
     private val userID: Int? = null,
@@ -77,5 +75,5 @@ class ProfileViewComponent(
         get() = userID == null
 
     val isContactable: Boolean
-        get() = userID != null && userID != userDataRepository.requireUserId()
+        get() = userID != null && userID != userRepository.requireUserId()
 }

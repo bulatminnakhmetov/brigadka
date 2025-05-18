@@ -6,7 +6,7 @@ import com.brigadka.app.data.api.BrigadkaApiService
 import com.brigadka.app.data.api.models.ChatMessage as ChatMessageApi
 import com.brigadka.app.data.api.websocket.ChatMessage as ChatMessageWS
 import com.brigadka.app.data.api.websocket.ChatWebSocketClient
-import com.brigadka.app.data.repository.UserDataRepository
+import com.brigadka.app.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 
 class ChatComponent(
     componentContext: ComponentContext,
-    private val userDataRepository: UserDataRepository,
+    private val userRepository: UserRepository,
     private val chatID: String,
     private val api: BrigadkaApiService,
     private val webSocketClient: ChatWebSocketClient,
@@ -52,7 +52,7 @@ class ChatComponent(
 
     init {
         // TODO: handle exception
-        _uiState.update { it.copy(currentUserId = userDataRepository.requireUserId()) }
+        _uiState.update { it.copy(currentUserId = userRepository.requireUserId()) }
 
         scope.launch {
 
@@ -128,7 +128,7 @@ class ChatComponent(
         val chatId = chatID ?: return
 
         try {
-            val senderID = userDataRepository.requireUserId()
+            val senderID = userRepository.requireUserId()
             val messageId = webSocketClient.sendChatMessage(senderID, chatId, content)
 
             // Add as pending message
