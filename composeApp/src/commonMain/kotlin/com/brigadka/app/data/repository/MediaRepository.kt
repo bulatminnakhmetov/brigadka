@@ -68,13 +68,27 @@ class MediaRepositoryImpl(
         fileName: String
     ): MediaItem =
         withContext(Dispatchers.Default) {
-            val thumbnailData = generateThumbnail(fileBytes, fileName)
-            val thumbnailFileName = "thumbnail_${replaceExtensionWithPng(fileName)}"
+            // Convert video if needed
+            val processedFileBytes = if (isVideoFile(fileName)) {
+                convertVideoToMp4(fileBytes, fileName)
+            } else {
+                fileBytes
+            }
+
+            // Use the processed file name (ensuring mp4 extension for videos)
+            val processedFileName = if (isVideoFile(fileName)) {
+                ensureMp4Extension(fileName)
+            } else {
+                fileName
+            }
+
+            val thumbnailData = generateThumbnail(processedFileBytes, processedFileName)
+            val thumbnailFileName = "thumbnail_${replaceExtensionWithPng(processedFileName)}"
+
             withContext(Dispatchers.IO) {
-                uploadMedia(fileBytes, fileName, thumbnailData, thumbnailFileName)
+                uploadMedia(processedFileBytes, processedFileName, thumbnailData, thumbnailFileName)
             }
         }
-
     /**
      * Generates a thumbnail from the provided file bytes
      */
@@ -82,6 +96,18 @@ class MediaRepositoryImpl(
         // This will be platform-specific implementation
         return createThumbnail(fileBytes, fileName.lowercase())
     }
+}
+
+private fun isVideoFile(fileName: String): Boolean {
+    return fileName.endsWith(".mp4", ignoreCase = true) ||
+            fileName.endsWith(".mov", ignoreCase = true) ||
+            fileName.endsWith(".webm", ignoreCase = true) ||
+            fileName.endsWith(".avi", ignoreCase = true)
+}
+
+private fun ensureMp4Extension(fileName: String): String {
+    val baseName = fileName.substringBeforeLast('.', fileName)
+    return "$baseName.mp4"
 }
 
 fun replaceExtensionWithPng(fileName: String): String {
