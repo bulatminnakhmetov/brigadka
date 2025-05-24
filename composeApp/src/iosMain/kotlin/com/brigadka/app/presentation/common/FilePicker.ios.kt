@@ -18,7 +18,6 @@ import platform.UIKit.UIApplication
 import platform.UIKit.UIModalPresentationFormSheet
 import platform.darwin.NSObject
 import platform.posix.memcpy
-import kotlin.native.ref.WeakReference
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 @Composable

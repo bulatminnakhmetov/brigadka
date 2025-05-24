@@ -7,14 +7,25 @@ import com.brigadka.app.data.api.models.ChatMessage as ChatMessageApi
 import com.brigadka.app.data.api.websocket.ChatMessage as ChatMessageWS
 import com.brigadka.app.data.api.websocket.ChatWebSocketClient
 import com.brigadka.app.data.repository.UserRepository
+import com.brigadka.app.presentation.common.TopBarState
+import com.brigadka.app.presentation.common.UIEvent
+import com.brigadka.app.presentation.common.UIEventEmitter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+data class ChatTopBarState(
+    val chatName: String,
+    val isOnline: Boolean,
+    val onBackClick: () -> Unit
+): TopBarState
+
+
 class ChatComponent(
     componentContext: ComponentContext,
+    private val uiEventEmitter: UIEventEmitter,
     private val userRepository: UserRepository,
     private val chatID: String,
     private val api: BrigadkaApiService,
@@ -36,17 +47,6 @@ class ChatComponent(
     )
     val topBarState: StateFlow<ChatTopBarState> = _topBarState.asStateFlow()
 
-    init {
-        scope.launch {
-            uiState.collect { state ->
-                _topBarState.value = ChatTopBarState(
-                    chatName = state.chatName,
-                    isOnline = state.isOnline,
-                    onBackClick = onBackClick
-                )
-            }
-        }
-    }
     // Keep track of pending messages
     private val pendingMessages = mutableMapOf<String, Message>()
 
@@ -116,6 +116,17 @@ class ChatComponent(
                     }
                 }
             }
+        }
+    }
+
+    suspend fun showTopBar() {
+        uiState.collect { state ->
+            val topBarState = ChatTopBarState(
+                chatName = state.chatName,
+                isOnline = state.isOnline,
+                onBackClick = onBackClick
+            )
+            uiEventEmitter.emit(UIEvent.TopBarUpdate(topBarState))
         }
     }
 

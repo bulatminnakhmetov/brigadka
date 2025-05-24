@@ -1,4 +1,4 @@
-package com.brigadka.app.presentation.common
+package com.brigadka.app.presentation.common.compose
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row

@@ -17,7 +17,7 @@ import com.brigadka.app.data.repository.UserRepository
 import com.brigadka.app.presentation.onboarding.improv.ImprovInfoComponent
 import com.brigadka.app.presentation.onboarding.basic.BasicInfoComponent
 import com.brigadka.app.presentation.onboarding.media.MediaUploadComponent
-import com.brigadka.app.presentation.profile.common.ProfileData
+import com.brigadka.app.presentation.profile.common.ProfileState
 import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -34,8 +34,8 @@ class OnboardingComponent(
 ) : ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
-    private val _profileData = MutableValue(ProfileData())
-    val profileData: Value<ProfileData> = _profileData
+    private val _profileState = MutableValue(ProfileState())
+    val profileState: Value<ProfileState> = _profileState
 
     private val scope = coroutineScope()
 
@@ -54,7 +54,7 @@ class OnboardingComponent(
             is Config.BasicInfo -> Child.BasicInfo(
                 BasicInfoComponent(
                     componentContext = componentContext,
-                    _profileData = _profileData,
+                    profileState = _profileState,
                     profileRepository = profileRepository,
                     onNext = ::onBasicInfoCompleted,
                 )
@@ -63,7 +63,7 @@ class OnboardingComponent(
                 ImprovInfoComponent(
                     componentContext = componentContext,
                     profileRepository = profileRepository,
-                    _profileData = _profileData,
+                    profileState = _profileState,
                     onNext = ::onImprovInfoCompleted,
                     onBack = navigation::pop
                 )
@@ -72,7 +72,7 @@ class OnboardingComponent(
                 MediaUploadComponent(
                     componentContext = componentContext,
                     mediaRepository = mediaRepository,
-                    _profileData = _profileData,
+                    profileState = _profileState,
                     onFinish = ::onMediaUploadCompleted,
                     onBack = navigation::pop
                 )
@@ -98,16 +98,16 @@ class OnboardingComponent(
 
             val request = ProfileCreateRequest(
                 user_id = userId,
-                full_name = profileData.value.fullName,
-                bio = profileData.value.bio,
-                birthday = profileData.value.birthday ?: LocalDate(2000, 1, 1),
-                city_id = profileData.value.cityId ?: 1,
-                gender = profileData.value.gender ?: "other",
-                goal = profileData.value.goal ?: "",
-                improv_styles = profileData.value.improvStyles,
-                looking_for_team = profileData.value.lookingForTeam,
-                avatar = profileData.value.avatar.value?.id,
-                videos = profileData.value.videos.mapNotNull { it.value?.id }
+                full_name = profileState.value.fullName,
+                bio = profileState.value.bio,
+                birthday = profileState.value.birthday ?: LocalDate(2000, 1, 1),
+                city_id = profileState.value.cityId ?: 1,
+                gender = profileState.value.gender ?: "other",
+                goal = profileState.value.goal ?: "",
+                improv_styles = profileState.value.improvStyles,
+                looking_for_team = profileState.value.lookingForTeam,
+                avatar = profileState.value.avatar.value?.id,
+                videos = profileState.value.videos.mapNotNull { it.value?.id }
             )
 
             try {
@@ -134,7 +134,7 @@ class OnboardingComponent(
     }
 
     sealed class Child {
-        data class BasicInfo(val component: BasicInfoComponent) : Child()
+        data class BasicInfo(val component: com.brigadka.app.presentation.onboarding.basic.BasicInfoComponent) : Child()
         data class ImprovInfo(val component: ImprovInfoComponent) : Child()
         data class MediaUpload(val component: MediaUploadComponent) : Child()
     }

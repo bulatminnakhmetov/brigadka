@@ -36,6 +36,9 @@ import com.brigadka.app.presentation.root.RootComponent
 import com.brigadka.app.presentation.search.SearchComponent
 import com.brigadka.app.domain.push.PushTokenRegistrationManager
 import com.brigadka.app.domain.push.PushTokenRegistrationManagerImpl
+import com.brigadka.app.presentation.common.UIEventBus
+import com.brigadka.app.presentation.common.UIEventEmitter
+import com.brigadka.app.presentation.profile.edit.EditProfileComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,8 +53,6 @@ import org.koin.dsl.module
 typealias CreateProfileViewComponent = (
     context: ComponentContext,
     userID: Int?,
-    onEditProfile: () -> Unit,
-    onContactClick: (String) -> Unit,
     onBackClick: () -> Unit,
         ) -> ProfileViewComponent
 
@@ -60,6 +61,11 @@ typealias CreateChatComponent = (
     chatID: String,
     onBackClick: () -> Unit
         ) -> ChatComponent
+
+typealias CreateEditProfileComponent = (
+    context: ComponentContext,
+    onBackClick: () -> Unit,
+) -> EditProfileComponent
 
 fun initKoin(appModule: Module = module { }, additionalConfig: KoinApplication.() -> Unit = {}): KoinApplication {
     val koinApplication = startKoin {
@@ -159,6 +165,10 @@ val commonModule = module {
         )
     }
 
+    single<UIEventBus> {
+        UIEventBus()
+    }
+
     // Component factories
     factory { (context: ComponentContext) ->
         AuthComponent(
@@ -167,37 +177,65 @@ val commonModule = module {
         )
     }
 
+    factory {
+            (context: ComponentContext, onBackClick: () -> Unit) ->
+        EditProfileComponent(
+            componentContext = context,
+            uiEventEmitter = get<UIEventBus>(),
+            profileRepository = get(),
+            mediaRepository = get(),
+            onFinished = onBackClick,
+            onBack = onBackClick,
+        )
+    }
+
+    factory<CreateEditProfileComponent> {
+        { context: ComponentContext,
+          onBackClick: () -> Unit, ->
+            get<EditProfileComponent> { parametersOf(context, onBackClick) }
+        }
+    }
+
     factory { (
                   context: ComponentContext,
                   userID: Int?,
-                  onEditProfile: () -> Unit,
-                  onContactClick: (String) -> Unit,
                   onBackClick: () ->Unit,
     ) ->
         ProfileViewComponent(
             componentContext = context,
+            uiEventEmitter = get<UIEventBus>(),
             brigadkaApiService = get(),
             profileRepository = get(),
             userRepository = get(),
             sessionManager = get(),
             userID = userID,
-            onEditProfile = onEditProfile,
-            onContactClick = onContactClick,
-            onBackClick = onBackClick
+            onBackClick = onBackClick,
+            createChatComponent = get(),
+            createEditProfileComponent = get()
         )
     }
 
-    factory { (context: ComponentContext, onProfileClick: (Int) -> Unit) ->
+    factory<CreateProfileViewComponent> {
+        { context: ComponentContext,
+          userID: Int?,
+          onBackClick: () -> Unit, ->
+            get<ProfileViewComponent> { parametersOf(context, userID, onBackClick) }
+        }
+    }
+
+    factory { (context: ComponentContext) ->
         SearchComponent(
             componentContext = context,
+            uiEventEmitter = get<UIEventBus>(),
             profileRepository = get(),
-            onProfileClickCallback = onProfileClick
+            createProfileViewComponent = get(),
         )
     }
 
     factory { (context: ComponentContext, onChatSelected: (String) -> Unit) ->
         ChatListComponent(
             componentContext = context,
+            uiEventEmitter = get<UIEventBus>(),
             api = get(),
             profileRepository = get(),
             webSocketClient = get(),
@@ -209,6 +247,7 @@ val commonModule = module {
     factory { (context: ComponentContext, chatID: String, onBackClick: () -> Unit) ->
         ChatComponent(
             componentContext = context,
+            uiEventEmitter = get<UIEventBus>(),
             userRepository = get(),
             api = get(),
             webSocketClient = get(),
@@ -220,11 +259,10 @@ val commonModule = module {
     factory { (mainContext: ComponentContext) ->
         MainComponent(
             componentContext = mainContext,
-            createProfileViewComponent = { context, userID, onEditProfile, onContactClick, onBackClick ->
-                get<ProfileViewComponent> { parametersOf(context, userID, onEditProfile, onContactClick, onBackClick) }
-            },
-            createSearchComponent = { context, onProfileClick ->
-                get<SearchComponent> { parametersOf(context, onProfileClick) }
+            uiEventFlowProvider = get<UIEventBus>(),
+            createProfileViewComponent = get(),
+            createSearchComponent = { context ->
+                get<SearchComponent> { parametersOf(context) }
             },
             createChatListComponent = { context, onChatSelected ->
                 get<ChatListComponent> { parametersOf(context, onChatSelected) }

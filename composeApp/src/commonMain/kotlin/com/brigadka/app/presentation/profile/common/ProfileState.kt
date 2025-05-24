@@ -8,7 +8,7 @@ data class LoadableValue<T> (
     val isLoading: Boolean = false,
 )
 
-data class ProfileData(
+data class ProfileState(
     val fullName: String = "",
     val birthday: LocalDate? = null,
     val gender: String? = null,

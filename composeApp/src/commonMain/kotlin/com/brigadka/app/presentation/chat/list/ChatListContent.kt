@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -19,6 +20,9 @@ import com.brigadka.app.presentation.profile.common.Avatar
 @Composable
 fun ChatListContent(component: ChatListComponent) {
     val uiState by component.uiState.collectAsState()
+    LaunchedEffect(Unit) {
+        component.showTopBar()
+    }
     ChatListContent(
         uiState = uiState,
         onChatClick = component::onChatSelected,

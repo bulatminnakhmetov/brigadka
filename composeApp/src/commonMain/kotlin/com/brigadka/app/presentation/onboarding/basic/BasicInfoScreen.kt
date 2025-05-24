@@ -12,20 +12,20 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.data.api.models.City
 import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.data.api.models.StringItem
-import com.brigadka.app.presentation.common.CityPicker
-import com.brigadka.app.presentation.common.DatePickerField
+import com.brigadka.app.presentation.common.compose.CityPicker
+import com.brigadka.app.presentation.common.compose.DatePickerField
 import com.brigadka.app.presentation.profile.common.LoadableValue
-import com.brigadka.app.presentation.profile.common.ProfileData
+import com.brigadka.app.presentation.profile.common.ProfileState
 import kotlinx.datetime.LocalDate
 
 
 @Composable
 fun BasicInfoScreen(component: BasicInfoComponent) {
-    val state by component.profileData.subscribeAsState()
+    val state by component.profileState.subscribeAsState()
     val cities by component.cities.subscribeAsState()
     val genders by component.genders.subscribeAsState()
     BasicInfoScreen(
-        profileData = state,
+        profileState = state,
         cities = cities,
         genders = genders,
         updateFullName = component::updateFullName,
@@ -39,7 +39,7 @@ fun BasicInfoScreen(component: BasicInfoComponent) {
 
 @Composable
 fun BasicInfoScreenPreview() {
-    val profileData = ProfileData(
+    val profileState = ProfileState(
         fullName = "John Doe",
         birthday = LocalDate(2000, 1, 1),
         gender = "male",
@@ -70,7 +70,7 @@ fun BasicInfoScreenPreview() {
     )
 
     BasicInfoScreen(
-        profileData = profileData,
+        profileState = profileState,
         cities = cities,
         genders = genders,
         updateFullName = {},
@@ -84,7 +84,7 @@ fun BasicInfoScreenPreview() {
 
 @Composable
 fun BasicInfoScreen(
-    profileData: ProfileData,
+    profileState: ProfileState,
     cities: List<City>,
     genders: List<StringItem>,
     updateFullName: (String) -> Unit,
@@ -109,7 +109,7 @@ fun BasicInfoScreen(
         )
 
         OutlinedTextField(
-            value = profileData.fullName,
+            value = profileState.fullName,
             onValueChange = { updateFullName(it) },
             label = { Text("Имя") },
             modifier = Modifier.fillMaxWidth(),
@@ -117,7 +117,7 @@ fun BasicInfoScreen(
         )
 
         DatePickerField(
-            label = "День рождения",
+            label = "Дата рождения",
             onDateSelected = {
                 updateBirthday(it)
             },
@@ -135,7 +135,7 @@ fun BasicInfoScreen(
                 ) {
                     genders.forEach { gender ->
                         FilterChip(
-                            selected = profileData.gender == gender.code,
+                            selected = profileState.gender == gender.code,
                             onClick = { updateGender(gender.code) },
                             label = { Text(gender.label) }
                         )
@@ -150,7 +150,7 @@ fun BasicInfoScreen(
         }
 
         // City selection with dropdown
-        CityPicker(cities, profileData.cityId, onCitySelected = { cityID ->
+        CityPicker(cities, profileState.cityId, onCitySelected = { cityID ->
             updateCityId(cityID)
         })
 

@@ -20,6 +20,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,12 +36,22 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.scale
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
 import com.brigadka.app.presentation.chat.conversation.ChatContent
 import com.brigadka.app.presentation.chat.conversation.ChatTopBar
+import com.brigadka.app.presentation.chat.conversation.ChatTopBarState
 import com.brigadka.app.presentation.chat.list.ChatListContent
 import com.brigadka.app.presentation.chat.list.ChatListTopBar
+import com.brigadka.app.presentation.chat.list.ChatListTopBarState
+import com.brigadka.app.presentation.common.TopBarState
+import com.brigadka.app.presentation.common.UIEvent
+import com.brigadka.app.presentation.common.UIEventBus
+import com.brigadka.app.presentation.profile.edit.EditProfileTopBar
+import com.brigadka.app.presentation.profile.edit.EditProfileTopBarState
+import com.brigadka.app.presentation.profile.view.ProfileViewContent
 import com.brigadka.app.presentation.profile.view.ProfileViewScreen
 import com.brigadka.app.presentation.profile.view.ProfileViewTopBar
+import com.brigadka.app.presentation.profile.view.ProfileViewTopBarState
 import com.brigadka.app.presentation.search.SearchScreen
 import com.brigadka.app.presentation.search.SearchTopBar
+import com.brigadka.app.presentation.search.SearchTopBarState
 import kotlinx.coroutines.launch
 
 @Composable
@@ -49,18 +60,28 @@ fun MainContent(component: MainComponent) {
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
-    val activeChild = childStack.active.instance
+    // State to hold the current top bar
+    var currentTopBarState by remember { mutableStateOf<TopBarState?>(null) }
+
+    // Listen for top bar update events
+    LaunchedEffect(Unit) {
+        component.events.collect { event ->
+            when (event) {
+                is UIEvent.TopBarUpdate -> {
+                    currentTopBarState = event.topBarState
+                }
+            }
+        }
+    }
 
     val topBar: @Composable () -> Unit = {
-        when (activeChild) {
-            is Child.Search -> SearchTopBar(state = activeChild.component.topBarState)
-            is Child.Profile -> ProfileViewTopBar(state = activeChild.component.topBarState)
-            is Child.ChatList -> ChatListTopBar()
-            is Child.Chat -> {
-                val topBarState by activeChild.component.topBarState.collectAsState()
-                ChatTopBar(state = topBarState)
-            }
-            else -> {}
+        when (val topBarState = currentTopBarState) {
+            is SearchTopBarState -> SearchTopBar(state = topBarState)
+            is ProfileViewTopBarState -> ProfileViewTopBar(state = topBarState)
+            is ChatTopBarState -> ChatTopBar(state = topBarState)
+            is ChatListTopBarState -> ChatListTopBar()
+            is EditProfileTopBarState -> EditProfileTopBar(state = topBarState)
+            null -> {}
         }
     }
 
@@ -77,11 +98,7 @@ fun MainContent(component: MainComponent) {
             ) { child ->
                 when (val instance = child.instance) {
                     is Child.Profile ->
-                        ProfileViewScreen(instance.component) {
-                            coroutineScope.launch {
-                                snackbarHostState.showSnackbar(it)
-                            }
-                        }
+                        ProfileViewContent(instance.component)
                     is Child.Search ->
                         SearchScreen(instance.component)
                     is Child.ChatList ->

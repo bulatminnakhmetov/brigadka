@@ -33,6 +33,8 @@ interface ProfileRepository {
     // Get any profile by ID without changing currentUserProfile
     suspend fun getProfileView(userId: Int?): ProfileView
 
+    suspend fun getProfile(userId: Int?): Profile
+
     // Update the current user's profile
     suspend fun updateProfile(request: ProfileUpdateRequest)
 
@@ -100,11 +102,14 @@ class ProfileRepositoryImpl(
         }
     }
 
-    override suspend fun getProfileView(userId: Int?): ProfileView {
-        val profile = withContext(Dispatchers.IO) {
+    override suspend fun getProfile(userId: Int?): Profile {
+        return withContext(Dispatchers.IO) {
             apiService.getProfile(userId ?: userRepository.requireUserId())
         }
-        return convertToProfileView(profile)
+    }
+
+    override suspend fun getProfileView(userId: Int?): ProfileView {
+        return convertToProfileView(getProfile(userId))
     }
 
     override suspend fun createProfile(request: ProfileCreateRequest) {
@@ -115,7 +120,7 @@ class ProfileRepositoryImpl(
 
     override suspend fun updateProfile(request: ProfileUpdateRequest){
         withContext(Dispatchers.IO) {
-            apiService.updateProfile(request)
+            apiService.updateProfile(userRepository.requireUserId(), request)
         }
     }
 

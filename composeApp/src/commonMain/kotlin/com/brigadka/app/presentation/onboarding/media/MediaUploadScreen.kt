@@ -30,7 +30,7 @@ import com.brigadka.app.presentation.profile.common.VideoSection
 
 @Composable
 fun MediaUploadScreen(component: MediaUploadComponent, onError : (String) -> Unit) {
-    val profileData by component.profileData.subscribeAsState()
+    val profileData by component.profileState.subscribeAsState()
 
     val avatarPickerLauncher = rememberFilePickerLauncher(
         fileType = "image/*",
@@ -129,7 +129,7 @@ fun MediaUploadScreen(
             },
             onClick = pickImage,
             onRemove = removeAvatar,
-            modifier = Modifier.align(Alignment.CenterHorizontally).size(180.dp)
+            modifier = Modifier.align(Alignment.CenterHorizontally).size(150.dp)
         )
         
         Spacer(modifier = Modifier.height(36.dp))

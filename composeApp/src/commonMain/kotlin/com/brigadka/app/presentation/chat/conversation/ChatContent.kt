@@ -20,11 +20,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.brigadka.app.presentation.common.TopBarState
 import kotlinx.coroutines.launch
 
 @Composable
 fun ChatContent(component: ChatComponent) {
     val uiState by component.uiState.collectAsState()
+    LaunchedEffect(Unit) {
+        component.showTopBar()
+    }
     ChatContent(uiState = uiState, onBackClick = component::onBack, onSendMessage = component::sendMessage)
 }
 
@@ -119,11 +123,6 @@ fun ChatContent(uiState: ChatComponent.ChatUiState, onBackClick: () -> Unit, onS
     }
 }
 
-data class ChatTopBarState(
-    val chatName: String,
-    val isOnline: Boolean,
-    val onBackClick: () -> Unit
-)
 
 @Composable
 private fun MessageBubble(

@@ -1,4 +1,4 @@
-package com.brigadka.app.presentation.common
+package com.brigadka.app.presentation.common.compose
 
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -30,8 +30,8 @@ import kotlinx.datetime.format
 import kotlinx.datetime.toLocalDateTime
 
 @Composable
-fun DatePickerField(label: String, onDateSelected: (LocalDate?) -> kotlin.Unit, modifier: Modifier = Modifier) {
-    var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
+fun DatePickerField(label: String, onDateSelected: (LocalDate?) -> kotlin.Unit, selectedDate: LocalDate? = null, modifier: Modifier = Modifier) {
+    var selectedDate by remember { mutableStateOf<LocalDate?>(selectedDate) }
     var showModal by remember { mutableStateOf(false) }
 
     OutlinedTextField(

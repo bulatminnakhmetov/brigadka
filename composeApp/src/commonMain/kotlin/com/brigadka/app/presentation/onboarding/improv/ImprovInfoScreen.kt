@@ -29,16 +29,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.brigadka.app.data.api.models.City
 import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.data.api.models.StringItem
 import com.brigadka.app.presentation.profile.common.LoadableValue
-import com.brigadka.app.presentation.profile.common.ProfileData
+import com.brigadka.app.presentation.profile.common.ProfileState
 import kotlinx.datetime.LocalDate
 
 @Composable
 fun ImprovInfoScreen(component: ImprovInfoComponent) {
-    val state by component.profileData.subscribeAsState()
+    val state by component.profileState.subscribeAsState()
     val improvGoals by component.improvGoals.collectAsState()
     val improvStyles by component.improvStyles.collectAsState()
 
@@ -58,7 +57,7 @@ fun ImprovInfoScreen(component: ImprovInfoComponent) {
 
 @Composable
 fun ImprovInfoScreenPreview() {
-    val profileData = ProfileData(
+    val profileState = ProfileState(
         fullName = "John Doe",
         birthday = LocalDate(2000, 1, 1),
         gender = "male",
@@ -107,7 +106,7 @@ fun ImprovInfoScreenPreview() {
     )
 
     ImprovInfoScreen(
-        state = profileData,
+        state = profileState,
         improvGoals = goals,
         improvStyles = styles,
         updateBio = {},
@@ -123,7 +122,7 @@ fun ImprovInfoScreenPreview() {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ImprovInfoScreen(
-    state: ProfileData,
+    state: ProfileState,
     improvGoals: List<StringItem>,
     improvStyles: List<StringItem>,
     updateBio: (String) -> Unit,

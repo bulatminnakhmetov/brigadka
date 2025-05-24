@@ -9,7 +9,7 @@ interface UserRepository {
     val isLoggedIn: Boolean
     suspend fun setCurrentUserId(userId: Int)
     suspend fun clearCurrentUserId()
-    fun requireUserId(): Int
+    fun requireUserId(): Int // TODO: Handle null case gracefully
 }
 
 class UserRepositoryImpl(

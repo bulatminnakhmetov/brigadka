@@ -1,6 +1,12 @@
 package com.brigadka.app.presentation.search
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
@@ -9,35 +15,64 @@ import com.brigadka.app.data.api.models.City
 import com.brigadka.app.data.api.models.StringItem
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.SearchResult
+import com.brigadka.app.di.CreateChatComponent
+import com.brigadka.app.di.CreateProfileViewComponent
+import com.brigadka.app.presentation.common.TopBarState
+import com.brigadka.app.presentation.common.UIEvent
+import com.brigadka.app.presentation.common.UIEventEmitter
+import com.brigadka.app.presentation.profile.view.ProfileViewComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
 data class SearchTopBarState(
     val query: String,
     val onQueryChange: (String) -> Unit,
     val onSearch: () -> Unit,
     val onToggleFilters: () -> Unit
-)
+): TopBarState
 
 class SearchComponent(
     componentContext: ComponentContext,
+    private val uiEventEmitter: UIEventEmitter,
     private val profileRepository: ProfileRepository,
-    val onProfileClickCallback: (Int) -> Unit
+    private val createProfileViewComponent: CreateProfileViewComponent,
 ) : ComponentContext by componentContext {
 
-    private val _state = MutableValue(SearchState())
-    val state: Value<SearchState> get() = _state
+    private val _state = MutableStateFlow(SearchState())
+    val state: StateFlow<SearchState> get() = _state
 
-    val topBarState: SearchTopBarState
-        get() = SearchTopBarState(
-            query = _state.value.nameFilter ?: "",
-            onQueryChange = ::updateNameFilter,
-            onSearch = ::performSearch,
-            onToggleFilters = ::toggleFilters
+    // Navigation
+    private val navigation = StackNavigation<SearchConfig>()
+    private val _childStack = childStack(
+        source = navigation,
+        initialConfiguration = SearchConfig.SearchList,
+        handleBackButton = true,
+        serializer = SearchConfig.serializer(),
+        childFactory = ::createChild
+    )
+
+    val childStack: Value<ChildStack<SearchConfig, SearchChild>> = _childStack
+
+    private fun createChild(
+        config: SearchConfig,
+        componentContext: ComponentContext
+    ): SearchChild = when (config) {
+        is SearchConfig.SearchList -> SearchChild.SearchPage
+        is SearchConfig.Profile -> SearchChild.Profile(
+            createProfileViewComponent(
+                componentContext,
+                config.userID,
+                { navigation.pop() }
+            )
         )
+    }
 
     private val coroutineScope = coroutineScope()
     private var searchJob: Job? = null
@@ -49,6 +84,18 @@ class SearchComponent(
     init {
         loadReferenceData()
         performSearch()
+    }
+
+    suspend fun showTopBar() {
+        state.collect {
+            val topBarState = SearchTopBarState(
+                query = _state.value.nameFilter ?: "",
+                onQueryChange = ::updateNameFilter,
+                onSearch = ::performSearch,
+                onToggleFilters = ::toggleFilters
+            )
+            uiEventEmitter.emit(UIEvent.TopBarUpdate(topBarState))
+        }
     }
 
     private fun loadReferenceData() {
@@ -69,7 +116,7 @@ class SearchComponent(
 
             } catch (e: Exception) {
                 _state.update { it.copy(
-                    error = "Failed to load reference data", // TODO: gracefully degrade
+                    error = "Failed to load reference data",
                     isLoading = false
                 ) }
             }
@@ -172,7 +219,7 @@ class SearchComponent(
     }
 
     fun onProfileClick(userId: Int) {
-        onProfileClickCallback(userId)
+        navigation.pushNew(SearchConfig.Profile(userId))
     }
 
     fun resetFilters() {
@@ -186,6 +233,20 @@ class SearchComponent(
         }
         performSearch()
     }
+}
+
+@Serializable
+sealed class SearchConfig {
+    @Serializable
+    object SearchList : SearchConfig()
+
+    @Serializable
+    data class Profile(val userID: Int) : SearchConfig()
+}
+
+sealed class SearchChild {
+    object SearchPage : SearchChild()
+    data class Profile(val component: ProfileViewComponent) : SearchChild()
 }
 
 fun List<Option>.toggle(

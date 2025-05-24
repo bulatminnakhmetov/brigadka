@@ -14,17 +14,19 @@ import com.brigadka.app.di.CreateChatComponent
 import com.brigadka.app.di.CreateProfileViewComponent
 import com.brigadka.app.presentation.chat.conversation.ChatComponent
 import com.brigadka.app.presentation.chat.list.ChatListComponent
+import com.brigadka.app.presentation.common.UIEventFlowProvider
 import com.brigadka.app.presentation.profile.view.ProfileViewComponent
 import com.brigadka.app.presentation.search.SearchComponent
 import kotlinx.serialization.Serializable
 
 class MainComponent(
     componentContext: ComponentContext,
+    uiEventFlowProvider: UIEventFlowProvider,
     private val createProfileViewComponent: CreateProfileViewComponent,
-    private val createSearchComponent: (ComponentContext, (Int) -> Unit) -> SearchComponent,
+    private val createSearchComponent: (ComponentContext) -> SearchComponent,
     private val createChatListComponent: (ComponentContext, (String) -> Unit) -> ChatListComponent,
     private val createChatComponent: CreateChatComponent
-) : ComponentContext by componentContext {
+) : ComponentContext by componentContext, UIEventFlowProvider by uiEventFlowProvider {
 
     private val mainNavigation = StackNavigation<Config>()
     private val mainStack = childStack(
@@ -42,15 +44,12 @@ class MainComponent(
         componentContext: ComponentContext
     ): Child = when (configuration) {
         is Config.Profile -> Child.Profile(
-            createProfileViewComponent(componentContext, configuration.userID, {},
-                { chatID -> navigateToChat(chatID) },
+            createProfileViewComponent(componentContext, configuration.userID,
                 { mainNavigation.pop() }
             )
         )
         is Config.Search -> Child.Search(
-            createSearchComponent(componentContext, { userID ->
-                navigateToProfile(userID)
-            })
+            createSearchComponent(componentContext)
         )
         is Config.ChatList -> Child.ChatList(
             createChatListComponent(

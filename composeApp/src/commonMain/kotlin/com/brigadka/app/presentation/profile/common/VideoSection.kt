@@ -33,7 +33,7 @@ fun VideoSection(
 ) {
     LazyRow (
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         items(videos.size) { index ->
             val video = videos[index]
@@ -46,13 +46,7 @@ fun VideoSection(
                 onError = { error ->
                     onError("Failed to get video thumbnail: $error")
                 },
-                modifier = Modifier
-                    .width(200.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-                    .clickable(enabled = !video.isLoading) {
-                        // TODO: open video
-                    }
+                modifier = Modifier.width(220.dp)
             )
         }
     }

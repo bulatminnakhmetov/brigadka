@@ -1,6 +1,5 @@
 package com.brigadka.app.presentation.search
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,40 +17,59 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.arkivanov.decompose.extensions.compose.stack.animation.scale
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.brigadka.app.data.repository.ProfileView
 import com.brigadka.app.presentation.profile.common.Avatar
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.brigadka.app.data.api.models.City
 import com.brigadka.app.data.repository.SearchResult
-import com.brigadka.app.presentation.common.CityPicker
+import com.brigadka.app.presentation.common.compose.CityPicker
 import com.brigadka.app.presentation.common.getProfilesPostfix
 import com.brigadka.app.presentation.common.getYearsPostfix
-
+import com.brigadka.app.presentation.profile.view.ProfileViewContent
+import com.brigadka.app.presentation.profile.view.ProfileViewScreen
 
 @Composable
 fun SearchScreen(component: SearchComponent) {
-    val state by component.state.subscribeAsState()
+    val childStack by component.childStack.subscribeAsState()
 
-    SearchScreen(
-        state = state,
-        showFilters = state.showFilters,
-        onUpdateAgeRange = component::updateAgeRange,
-        onUpdateCityFilter = component::updateCityFilter,
-        onToggleGender = component::toggleGender,
-        onToggleGoal = component::toggleGoal,
-        onToggleImprovStyle = component::toggleImprovStyle,
-        onToggleLookingForTeam = component::toggleLookingForTeam,
-        onToggleHasAvatar = component::toggleHasAvatar,
-        onToggleHasVideo = component::toggleHasVideo,
-        onResetFilters = component::resetFilters,
-        onPreviousPage = component::previousPage,
-        onNextPage = component::nextPage,
-        onProfileClick = component::onProfileClick
-    )
+    Children(
+        stack = childStack,
+        animation = stackAnimation(fade() + scale()),
+    ) { child ->
+        when (val instance = child.instance) {
+            is SearchChild.SearchPage -> {
+                val state by component.state.collectAsState()
+
+                LaunchedEffect(Unit) {
+                    component.showTopBar()
+                }
+
+                SearchScreen(
+                    state = state,
+                    showFilters = state.showFilters,
+                    onUpdateAgeRange = component::updateAgeRange,
+                    onUpdateCityFilter = component::updateCityFilter,
+                    onToggleGender = component::toggleGender,
+                    onToggleGoal = component::toggleGoal,
+                    onToggleImprovStyle = component::toggleImprovStyle,
+                    onToggleLookingForTeam = component::toggleLookingForTeam,
+                    onToggleHasAvatar = component::toggleHasAvatar,
+                    onToggleHasVideo = component::toggleHasVideo,
+                    onResetFilters = component::resetFilters,
+                    onPreviousPage = component::previousPage,
+                    onNextPage = component::nextPage,
+                    onProfileClick = component::onProfileClick
+                )
+            }
+            is SearchChild.Profile -> ProfileViewContent(instance.component)
+        }
+    }
 }
 
 @Composable

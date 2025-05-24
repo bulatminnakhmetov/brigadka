@@ -7,6 +7,9 @@ import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.data.api.websocket.ChatWebSocketClient
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.UserRepository
+import com.brigadka.app.presentation.common.TopBarState
+import com.brigadka.app.presentation.common.UIEvent
+import com.brigadka.app.presentation.common.UIEventEmitter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,9 +22,11 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.toLocalDateTime
 
+data object ChatListTopBarState: TopBarState
 
 class ChatListComponent(
     componentContext: ComponentContext,
+    private val uiEventEmitter: UIEventEmitter,
     private val api: BrigadkaApiService,
     private val profileRepository: ProfileRepository,
     private val userRepository: UserRepository,
@@ -103,6 +108,10 @@ class ChatListComponent(
                 ) }
             }
         }
+    }
+
+    suspend fun showTopBar() {
+        uiEventEmitter.emit(UIEvent.TopBarUpdate(ChatListTopBarState))
     }
 
     fun onChatSelected(chatId: String) {

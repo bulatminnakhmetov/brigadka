@@ -49,7 +49,7 @@ interface BrigadkaApiServiceAuthorized {
 
     // Profile endpoints
     suspend fun createProfile(request: ProfileCreateRequest): Profile
-    suspend fun updateProfile(request: ProfileUpdateRequest): Profile
+    suspend fun updateProfile(userID: Int, request: ProfileUpdateRequest): Profile
     suspend fun getProfile(userId: Int): Profile
 
     // Media endpoints
@@ -149,8 +149,8 @@ class BrigadkaApiServiceAuthorizedImpl(
         }.body()
     }
 
-    override suspend fun updateProfile(request: ProfileUpdateRequest): Profile {
-        return client.patch("$baseUrl/profiles") {
+    override suspend fun updateProfile(userID: Int, request: ProfileUpdateRequest): Profile {
+        return client.patch("$baseUrl/profiles/$userID") {
             contentType(ContentType.Application.Json)
             setBody(request)
         }.body()

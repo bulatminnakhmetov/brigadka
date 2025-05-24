@@ -11,6 +11,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,94 +21,60 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.arkivanov.decompose.extensions.compose.stack.animation.scale
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.presentation.profile.common.Avatar
 import com.brigadka.app.presentation.profile.common.LoadableValue
 import com.brigadka.app.data.repository.ProfileView
+import com.brigadka.app.presentation.chat.conversation.ChatContent
 import com.brigadka.app.presentation.common.getYearsPostfix
 import com.brigadka.app.presentation.profile.common.VideoSection
+import com.brigadka.app.presentation.profile.edit.EditProfileScreen
 
 @Composable
-fun ProfileViewScreen(component: ProfileViewComponent, onError: (String) -> Unit) {
+fun ProfileViewContent(component: ProfileViewComponent) {
+
+    val childStack by component.childStack.subscribeAsState()
+
+    Children(
+        stack = childStack,
+        animation = stackAnimation(fade() + scale())
+    ) { child ->
+        when (val instance = child.instance) {
+            is ProfileViewComponent.Child.Profile -> {
+                ProfileViewScreen(component)
+            }
+            is ProfileViewComponent.Child.EditProfile -> {
+                EditProfileScreen(instance.component)
+            }
+            is ProfileViewComponent.Child.Chat -> {
+                ChatContent(instance.component)
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileViewScreen(component: ProfileViewComponent){
     val profileViewState by component.profileView.subscribeAsState()
+
+    LaunchedEffect(Unit) {
+        component.showTopBar()
+    }
+
     ProfileViewScreen(
         profileView = profileViewState.value,
         isLoading = profileViewState.isLoading,
-        onError = onError,
-        onEditProfile = component.onEditProfile,
+        onError = { /* Handle error */ },
+        onEditProfile = component::onEditProfile,
         onContactClick = component::onContactClick,
         isContactable = component.isContactable,
         isEditable = component.isEditable
-    )
-}
-
-@Composable
-fun HomeProfileViewScreenPreview() {
-    val profileView = ProfileView(
-        userID = 1,
-        fullName = "John Doe",
-        age = 30,
-        genderLabel = "Мужчина",
-        cityLabel = "Москва",
-        bio = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        goalLabel = "Хобби",
-        improvStylesLabels = listOf("Длинная форма", "Реп"),
-        lookingForTeam = true,
-        avatar = MediaItem(
-            id = 1,
-            url = "https://example.com/avatar.jpg",
-            thumbnail_url = "https://example.com/avatar_thumbnail.jpg"
-        ),
-        videos = listOf(
-            MediaItem(id = 0, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video"),
-            MediaItem(id = 1, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video"),
-            MediaItem(id = 2, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video")
-        )
-    )
-    ProfileViewScreen(
-        profileView,
-        isLoading = false,
-        onError = {},
-        onEditProfile = {},
-        onContactClick = {},
-        isContactable = false,
-        isEditable = true
-    )
-}
-
-
-@Composable
-fun OtherProfileViewScreenPreview() {
-    val profileView = ProfileView(
-        userID = 1,
-        fullName = "John Doe",
-        age = 30,
-        genderLabel = "Мужчина",
-        cityLabel = "Москва",
-        bio = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
-        goalLabel = "Хобби",
-        improvStylesLabels = listOf("Длинная форма", "Реп"),
-        lookingForTeam = true,
-        avatar = MediaItem(
-            id = 1,
-            url = "https://example.com/avatar.jpg",
-            thumbnail_url = "https://example.com/avatar_thumbnail.jpg"
-        ),
-        videos = listOf(
-            MediaItem(id = 0, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video"),
-            MediaItem(id = 1, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video"),
-            MediaItem(id = 2, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video")
-        )
-    )
-    ProfileViewScreen(
-        profileView,
-        isLoading = false,
-        onError = {},
-        onContactClick = {},
-        onEditProfile = {},
-        isContactable = true,
-        isEditable = false
     )
 }
 
@@ -121,7 +88,6 @@ fun ProfileViewScreen(
     isEditable: Boolean,
     isContactable: Boolean,
 ) {
-
     val scrollState = rememberScrollState()
 
     if (isLoading) {
@@ -203,17 +169,15 @@ fun ProfileViewScreen(
             Spacer(modifier = Modifier.height(24.dp))
 
             // Contact button
-            if (onContactClick != null) {
-                Button(
-                    onClick = { onContactClick() },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                ) {
-                    Text("Написать", style = MaterialTheme.typography.titleMedium)
-                }
+            Button(
+                onClick = { onContactClick() },
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            ) {
+                Text("Написать", style = MaterialTheme.typography.titleMedium)
             }
         }
 
@@ -318,7 +282,7 @@ fun ProfileViewTopBar(state: ProfileViewTopBarState) {
                     onDismissRequest = { showMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Edit Profile") },
+                        text = { Text("Редактировать") },
                         onClick = {
                             showMenu = false
                             state.onEditProfile()
@@ -328,7 +292,7 @@ fun ProfileViewTopBar(state: ProfileViewTopBarState) {
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Logout") },
+                        text = { Text("Выйти") },
                         onClick = {
                             showMenu = false
                             state.onLogout()
@@ -340,5 +304,75 @@ fun ProfileViewTopBar(state: ProfileViewTopBarState) {
                 }
             }
         }
+    )
+}
+
+
+@Composable
+fun HomeProfileViewScreenPreview() {
+    val profileView = ProfileView(
+        userID = 1,
+        fullName = "John Doe",
+        age = 30,
+        genderLabel = "Мужчина",
+        cityLabel = "Москва",
+        bio = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+        goalLabel = "Хобби",
+        improvStylesLabels = listOf("Длинная форма", "Реп"),
+        lookingForTeam = true,
+        avatar = MediaItem(
+            id = 1,
+            url = "https://example.com/avatar.jpg",
+            thumbnail_url = "https://example.com/avatar_thumbnail.jpg"
+        ),
+        videos = listOf(
+            MediaItem(id = 0, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video"),
+            MediaItem(id = 1, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video"),
+            MediaItem(id = 2, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video")
+        )
+    )
+    ProfileViewScreen(
+        profileView,
+        isLoading = false,
+        onError = {},
+        onEditProfile = {},
+        onContactClick = {},
+        isContactable = false,
+        isEditable = true
+    )
+}
+
+
+@Composable
+fun OtherProfileViewScreenPreview() {
+    val profileView = ProfileView(
+        userID = 1,
+        fullName = "John Doe",
+        age = 30,
+        genderLabel = "Мужчина",
+        cityLabel = "Москва",
+        bio = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+        goalLabel = "Хобби",
+        improvStylesLabels = listOf("Длинная форма", "Реп"),
+        lookingForTeam = true,
+        avatar = MediaItem(
+            id = 1,
+            url = "https://example.com/avatar.jpg",
+            thumbnail_url = "https://example.com/avatar_thumbnail.jpg"
+        ),
+        videos = listOf(
+            MediaItem(id = 0, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video"),
+            MediaItem(id = 1, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video"),
+            MediaItem(id = 2, url = "https://example.com/video1.mp4", thumbnail_url = "https://example.com/video")
+        )
+    )
+    ProfileViewScreen(
+        profileView,
+        isLoading = false,
+        onError = {},
+        onContactClick = {},
+        onEditProfile = {},
+        isContactable = true,
+        isEditable = false
     )
 }
