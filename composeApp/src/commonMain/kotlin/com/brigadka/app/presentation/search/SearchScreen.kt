@@ -14,6 +14,8 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -30,6 +32,7 @@ import com.brigadka.app.data.repository.ProfileView
 import com.brigadka.app.presentation.profile.common.Avatar
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.data.repository.SearchResult
+import com.brigadka.app.presentation.LocalStrings
 import com.brigadka.app.presentation.common.compose.CityPicker
 import com.brigadka.app.presentation.common.getProfilesPostfix
 import com.brigadka.app.presentation.common.getYearsPostfix
@@ -66,7 +69,8 @@ fun SearchScreen(component: SearchComponent) {
                     onToggleHasVideo = component::toggleHasVideo,
                     onResetFilters = component::resetFilters,
                     onNextPage = component::nextPage,
-                    onProfileClick = component::onProfileClick
+                    onProfileClick = component::onProfileClick,
+                    onRefresh = component::performSearch
                 )
             }
             is SearchChild.Profile -> ProfileViewContent(instance.component)
@@ -74,104 +78,7 @@ fun SearchScreen(component: SearchComponent) {
     }
 }
 
-@Composable
-fun SearchScreenPreview(showFilters: Boolean) {
-    val profiles = listOf(
-        ProfileView(
-            userID = 1,
-            fullName = "John Doe",
-            age = 28,
-            genderLabel = "Male",
-            cityLabel = "New York",
-            bio = "Improv enthusiast.",
-            goalLabel = "Have fun",
-            improvStylesLabels = listOf("Short Form", "Long Form"),
-            lookingForTeam = true,
-            avatar = null,
-            videos = emptyList()
-        ),
-        ProfileView(
-            userID = 1,
-            fullName = "Jane Smith",
-            age = 32,
-            genderLabel = "Female",
-            cityLabel = "Los Angeles",
-            bio = "Comedy lover and performer.",
-            goalLabel = "Meet new people",
-            improvStylesLabels = listOf("Musical", "Short Form"),
-            lookingForTeam = false,
-            avatar = null,
-            videos = emptyList()
-        ),
-        ProfileView(
-            userID = 1,
-            fullName = "Alex Johnson",
-            age = 25,
-            genderLabel = "Non-binary",
-            cityLabel = "Chicago",
-            bio = "Always up for a laugh.",
-            goalLabel = "Improve skills",
-            improvStylesLabels = listOf("Long Form"),
-            lookingForTeam = true,
-            avatar = null,
-            videos = emptyList()
-        )
-    )
-
-    val searchResult = SearchResult(
-        profiles = profiles,
-        page = 1,
-        pageSize = 20,
-        totalCount = profiles.size
-    )
-
-    val improvStyles = listOf(
-        Option("short_form", "Короткая форма", false),
-        Option("long_form", "Длинная форма", false),
-        Option("musical", "Мюзикл", true),
-        Option("musical", "Реп", false),
-        Option("musical", "Баттлы", true),
-        Option("musical", "Плейбек", false),
-    )
-
-    val goals = listOf(
-        Option("have_fun", "Have Fun", false),
-        Option("meet_people", "Meet People", true),
-        Option("improve_skills", "Improve Skills", false)
-    )
-
-    val genders = listOf(
-        Option("male", "Male", false),
-        Option("female", "Female", false),
-    )
-
-    val state = SearchState(
-        searchResult = searchResult,
-        isLoading = false,
-        improvStyleFilter = improvStyles,
-        goalFilter = goals,
-        genderFilter = genders,
-        lookingForTeamFilter = true,
-    )
-
-    SearchScreen(
-        state = state,
-        showFilters = showFilters,
-        onUpdateAgeRange = { _, _ -> },
-        onUpdateCityFilter = { },
-        onToggleGender = { },
-        onToggleGoal = { },
-        onToggleImprovStyle = { },
-        onToggleLookingForTeam = { },
-        onToggleHasAvatar = { },
-        onToggleHasVideo = { },
-        onResetFilters = { },
-        onNextPage = { },
-        onProfileClick = { }
-    )
-}
-
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchScreen(
     state: SearchState,
@@ -186,7 +93,8 @@ fun SearchScreen(
     onToggleHasVideo: (Boolean) -> Unit,
     onResetFilters: () -> Unit,
     onNextPage: () -> Unit,
-    onProfileClick: (Int) -> Unit
+    onProfileClick: (Int) -> Unit,
+    onRefresh: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         if (showFilters) {
@@ -236,56 +144,50 @@ fun SearchScreen(
                         )
                     }
                 } else {
-                    Column {
-                        Text(
-                            text = "Найдено ${searchResults.totalCount} ${getProfilesPostfix(searchResults.totalCount)}",
-                            style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                    val refreshState = rememberPullToRefreshState()
 
-                        val listState = rememberLazyListState()
+                    PullToRefreshBox(
+                        isRefreshing = state.isLoading,
+                        onRefresh = onRefresh,
+                        state = refreshState
+                    ) {
+                        Column {
+                            Text(
+                                text = "Найдено ${searchResults.totalCount} ${getProfilesPostfix(searchResults.totalCount)}",
+                                style = MaterialTheme.typography.labelMedium,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
 
-                        // Monitor scroll position to load more data
-                        val shouldLoadMore = remember(state.searchResult) {
-                            derivedStateOf {
-                                // Get the current searchResults from state each time
-                                val searchResult = state.searchResult
+                            val listState = rememberLazyListState()
 
-                                val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                                val totalItems = searchResult.profiles.size
+                            // Monitor scroll position to load more data
+                            val shouldLoadMore = remember(state.searchResult) {
+                                derivedStateOf {
+                                    // Get the current searchResults from state each time
+                                    val searchResult = state.searchResult
 
-                                lastVisibleItem >= totalItems - 3 &&
-                                        !state.isLoading &&
-                                        searchResult.page < (searchResult.totalCount / searchResult.pageSize) + 1
-                            }
-                        }
+                                    val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                                    val totalItems = searchResult.profiles.size
 
-                        LaunchedEffect(shouldLoadMore.value) {
-                            if (shouldLoadMore.value) {
-                                logger.d("Loading next page: ${searchResults.page + 1}")
-                                onNextPage()
-                            }
-                        }
-
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            items(searchResults.profiles) { profile ->
-                                ProfileCard(profile, onClick = { onProfileClick(profile.userID) })
+                                    lastVisibleItem >= totalItems - 3 &&
+                                            !state.isLoading &&
+                                            searchResult.page < (searchResult.totalCount / searchResult.pageSize) + 1
+                                }
                             }
 
-                            // Show loading indicator at bottom while loading next page
-                            if (state.isLoading) {
-                                item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
-                                    }
+                            LaunchedEffect(shouldLoadMore.value) {
+                                if (shouldLoadMore.value) {
+                                    logger.d("Loading next page: ${searchResults.page + 1}")
+                                    onNextPage()
+                                }
+                            }
+
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                items(searchResults.profiles) { profile ->
+                                    ProfileCard(profile, onClick = { onProfileClick(profile.userID) })
                                 }
                             }
                         }
@@ -295,6 +197,7 @@ fun SearchScreen(
         }
     }
 }
+
 
 @Composable
 fun SearchTopBarPreview() {
@@ -466,9 +369,9 @@ fun SearchFilters(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        BooleanFilter("Ищу команду", state.lookingForTeamFilter, onLookingForTeamToggle)
-        BooleanFilter("С аватаркой", state.hasAvatarFilter, onHasAvatarToggle)
-        BooleanFilter("С видео", state.hasVideoFilter, onHasVideoToggle)
+        BooleanFilter(LocalStrings.current.lookingForTeam, state.lookingForTeamFilter, onLookingForTeamToggle)
+        BooleanFilter(LocalStrings.current.withPhoto, state.hasAvatarFilter, onHasAvatarToggle)
+        BooleanFilter(LocalStrings.current.withVideo, state.hasVideoFilter, onHasVideoToggle)
 
         // Reset button
         Button(
@@ -591,14 +494,6 @@ fun ProfileCard(profile: ProfileView, onClick: () -> Unit) {
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-//                if (profile.improvStylesLabels.isNotEmpty()) {
-//                    Text(
-//                        text = profile.improvStylesLabels.joinToString(", "),
-//                        style = MaterialTheme.typography.bodyMedium,
-//                        modifier = Modifier.padding(top = 4.dp)
-//                    )
-//                }
-
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (profile.lookingForTeam) {
                         LookingForTeamBadge()
@@ -646,35 +541,101 @@ fun GoalBadge(goalLabel: String) {
     }
 }
 
+
 @Composable
-fun SearchPagination(
-    currentPage: Int,
-    totalPages: Int,
-    onPreviousPage: () -> Unit,
-    onNextPage: () -> Unit
-) {
-    // TODO: implement "scroll to load"
-//    Row(
-//        modifier = Modifier
-//            .fillMaxWidth()
-//            .padding(16.dp),
-//        horizontalArrangement = Arrangement.SpaceBetween,
-//        verticalAlignment = Alignment.CenterVertically
-//    ) {
-//        Button(
-//            onClick = onPreviousPage,
-//            enabled = currentPage > 1
-//        ) {
-//            Text("Previous")
-//        }
-//
-//        Text("${currentPage} of $totalPages")
-//
-//        Button(
-//            onClick = onNextPage,
-//            enabled = currentPage < totalPages
-//        ) {
-//            Text("Next")
-//        }
-//    }
+fun SearchScreenPreview(showFilters: Boolean) {
+    val profiles = listOf(
+        ProfileView(
+            userID = 1,
+            fullName = "John Doe",
+            age = 28,
+            genderLabel = "Male",
+            cityLabel = "New York",
+            bio = "Improv enthusiast.",
+            goalLabel = "Have fun",
+            improvStylesLabels = listOf("Short Form", "Long Form"),
+            lookingForTeam = true,
+            avatar = null,
+            videos = emptyList()
+        ),
+        ProfileView(
+            userID = 1,
+            fullName = "Jane Smith",
+            age = 32,
+            genderLabel = "Female",
+            cityLabel = "Los Angeles",
+            bio = "Comedy lover and performer.",
+            goalLabel = "Meet new people",
+            improvStylesLabels = listOf("Musical", "Short Form"),
+            lookingForTeam = false,
+            avatar = null,
+            videos = emptyList()
+        ),
+        ProfileView(
+            userID = 1,
+            fullName = "Alex Johnson",
+            age = 25,
+            genderLabel = "Non-binary",
+            cityLabel = "Chicago",
+            bio = "Always up for a laugh.",
+            goalLabel = "Improve skills",
+            improvStylesLabels = listOf("Long Form"),
+            lookingForTeam = true,
+            avatar = null,
+            videos = emptyList()
+        )
+    )
+
+    val searchResult = SearchResult(
+        profiles = profiles,
+        page = 1,
+        pageSize = 20,
+        totalCount = profiles.size
+    )
+
+    val improvStyles = listOf(
+        Option("short_form", "Короткая форма", false),
+        Option("long_form", "Длинная форма", false),
+        Option("musical", "Мюзикл", true),
+        Option("musical", "Реп", false),
+        Option("musical", "Баттлы", true),
+        Option("musical", "Плейбек", false),
+    )
+
+    val goals = listOf(
+        Option("have_fun", "Have Fun", false),
+        Option("meet_people", "Meet People", true),
+        Option("improve_skills", "Improve Skills", false)
+    )
+
+    val genders = listOf(
+        Option("male", "Male", false),
+        Option("female", "Female", false),
+    )
+
+    val state = SearchState(
+        searchResult = searchResult,
+        isLoading = false,
+        improvStyleFilter = improvStyles,
+        goalFilter = goals,
+        genderFilter = genders,
+        lookingForTeamFilter = true,
+    )
+
+    SearchScreen(
+        state = state,
+        showFilters = showFilters,
+        onUpdateAgeRange = { _, _ -> },
+        onUpdateCityFilter = { },
+        onToggleGender = { },
+        onToggleGoal = { },
+        onToggleImprovStyle = { },
+        onToggleLookingForTeam = { },
+        onToggleHasAvatar = { },
+        onToggleHasVideo = { },
+        onResetFilters = { },
+        onNextPage = { },
+        onProfileClick = { },
+        onRefresh = { }
+    )
 }
