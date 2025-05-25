@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -62,7 +63,6 @@ fun SearchScreen(component: SearchComponent) {
                     onToggleHasAvatar = component::toggleHasAvatar,
                     onToggleHasVideo = component::toggleHasVideo,
                     onResetFilters = component::resetFilters,
-                    onPreviousPage = component::previousPage,
                     onNextPage = component::nextPage,
                     onProfileClick = component::onProfileClick
                 )
@@ -164,12 +164,10 @@ fun SearchScreenPreview(showFilters: Boolean) {
         onToggleHasAvatar = { },
         onToggleHasVideo = { },
         onResetFilters = { },
-        onPreviousPage = { },
         onNextPage = { },
         onProfileClick = { }
     )
 }
-
 @Composable
 fun SearchScreen(
     state: SearchState,
@@ -183,7 +181,6 @@ fun SearchScreen(
     onToggleHasAvatar: (Boolean) -> Unit,
     onToggleHasVideo: (Boolean) -> Unit,
     onResetFilters: () -> Unit,
-    onPreviousPage: () -> Unit,
     onNextPage: () -> Unit,
     onProfileClick: (Int) -> Unit
 ) {
@@ -203,7 +200,7 @@ fun SearchScreen(
             )
         }
 
-        if (state.isLoading) {
+        if (state.isLoading && state.searchResult == null) {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -242,21 +239,49 @@ fun SearchScreen(
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                         )
 
+                        val listState = rememberLazyListState()
+
+                        // Monitor scroll position to load more data
+                        val shouldLoadMore = remember {
+                            derivedStateOf {
+                                val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                                val totalItems = searchResults.profiles.size
+
+                                // If we're close to the end and not already loading, and there are more pages
+                                lastVisibleItem >= totalItems - 3 &&
+                                        !state.isLoading &&
+                                        searchResults.page < (searchResults.totalCount / searchResults.pageSize) + 1
+                            }
+                        }
+
+                        LaunchedEffect(shouldLoadMore.value) {
+                            if (shouldLoadMore.value) {
+                                onNextPage()
+                            }
+                        }
+
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier.weight(1f)
                         ) {
                             items(searchResults.profiles) { profile ->
                                 ProfileCard(profile, onClick = { onProfileClick(profile.userID) })
                             }
-                        }
 
-                        // Pagination controls
-                        SearchPagination(
-                            currentPage = searchResults.page,
-                            totalPages = (searchResults.totalCount / searchResults.pageSize) + 1,
-                            onPreviousPage = onPreviousPage,
-                            onNextPage = onNextPage
-                        )
+                            // Show loading indicator at bottom while loading next page
+                            if (state.isLoading) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(modifier = Modifier.size(32.dp))
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }

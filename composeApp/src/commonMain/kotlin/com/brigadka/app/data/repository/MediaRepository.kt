@@ -82,7 +82,7 @@ class MediaRepositoryImpl(
                 fileName
             }
 
-            val thumbnailData = generateThumbnail(processedFileBytes, processedFileName)
+            val thumbnailData = generateThumbnail(processedFileBytes, processedFileName) // TODO: fix image rotation
             val thumbnailFileName = "thumbnail_${replaceExtensionWithPng(processedFileName)}"
 
             withContext(Dispatchers.IO) {

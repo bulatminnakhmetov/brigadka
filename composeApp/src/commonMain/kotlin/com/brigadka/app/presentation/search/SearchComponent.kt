@@ -124,16 +124,42 @@ class SearchComponent(
     }
 
     fun performSearch() {
-        val currentState = _state.value
-
         // Cancel previous search if still running
         searchJob?.cancel()
 
+        // Reset search state before performing new search
+        _state.update { it.copy(
+            searchResult = null,
+            currentPage = 0,  // Set to 0 so nextPage() will load page 1
+            isLoading = false,
+            error = null
+        )}
+
+        // Use nextPage to perform the initial search
+        nextPage()
+    }
+
+    fun nextPage() {
+        val currentState = _state.value
+
+        // If we're loading or there are no more pages, don't proceed
+        if (currentState.isLoading) return
+
+        // Calculate the next page to load
+        val nextPage = if (currentState.searchResult == null) 1 else currentState.searchResult.page + 1
+
+        // Check if we've reached the end of results
+        if (currentState.searchResult != null &&
+            nextPage > (currentState.searchResult.totalCount / currentState.searchResult.pageSize) + 1) {
+            return
+        }
+
         _state.update { it.copy(isLoading = true, error = null) }
 
+        searchJob?.cancel()
         searchJob = coroutineScope.launch {
             try {
-                val result = withContext(Dispatchers.IO) {
+                val newResults = withContext(Dispatchers.IO) {
                     profileRepository.searchProfiles(
                         fullName = currentState.nameFilter,
                         ageMin = currentState.minAgeFilter,
@@ -145,20 +171,33 @@ class SearchComponent(
                         lookingForTeam = if (currentState.lookingForTeamFilter) true else null,
                         hasAvatar = if (currentState.hasAvatarFilter) true else null,
                         hasVideo = if (currentState.hasVideoFilter) true else null,
-                        page = currentState.currentPage,
+                        page = nextPage,
                         pageSize = currentState.pageSize
                     )
                 }
 
+                // Combine with existing profiles or use new profiles if this is first page
+                val combinedProfiles = if (currentState.searchResult != null) {
+                    currentState.searchResult.profiles + newResults.profiles
+                } else {
+                    newResults.profiles
+                }
+
                 _state.update { it.copy(
-                    searchResult = result,
+                    searchResult = SearchResult(
+                        profiles = combinedProfiles,
+                        page = newResults.page,
+                        pageSize = newResults.pageSize,
+                        totalCount = newResults.totalCount
+                    ),
+                    currentPage = nextPage,
                     isLoading = false
-                ) }
+                )}
             } catch (e: Exception) {
                 _state.update { it.copy(
                     error = "Search failed: ${e.message}",
                     isLoading = false
-                ) }
+                )}
             }
         }
     }
@@ -200,22 +239,6 @@ class SearchComponent(
 
     fun toggleHasVideo(value: Boolean) {
         _state.update { it.copy(hasVideoFilter = value) }
-    }
-
-    fun nextPage() {
-        val currentResults = _state.value.searchResult
-        if (currentResults != null &&
-            currentResults.page < (currentResults.totalCount / currentResults.pageSize) + 1) {
-            _state.update { it.copy(currentPage = it.currentPage + 1) }
-            performSearch()
-        }
-    }
-
-    fun previousPage() {
-        if (_state.value.currentPage > 1) {
-            _state.update { it.copy(currentPage = it.currentPage - 1) }
-            performSearch()
-        }
     }
 
     fun onProfileClick(userId: Int) {
