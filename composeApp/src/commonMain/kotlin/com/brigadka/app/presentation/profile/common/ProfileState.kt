@@ -14,7 +14,7 @@ data class ProfileState(
     val gender: String? = null,
     val cityId: Int? = null,
     val bio: String = "",
-    val goal: String = "",
+    val goal: String? = null,
     val improvStyles: List<String> = emptyList(),
     val lookingForTeam: Boolean = false,
     val avatar: LoadableValue<MediaItem> = LoadableValue(),

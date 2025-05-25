@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.stack.Children
@@ -20,6 +21,8 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.presentation.AppTheme
 import com.brigadka.app.presentation.auth.AuthContent
+import com.brigadka.app.presentation.common.strings.RussianStrings
+import com.brigadka.app.presentation.common.strings.Strings
 import com.brigadka.app.presentation.loading.StartupLoadingScreen
 import com.brigadka.app.presentation.main.MainContent
 import com.brigadka.app.presentation.onboarding.OnboardingContent

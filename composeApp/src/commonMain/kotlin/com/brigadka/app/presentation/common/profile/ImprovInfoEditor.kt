@@ -25,7 +25,7 @@ open class ImprovInfoEditor(
     val improvStyles: StateFlow<List<StringItem>> = _improvStyles.asStateFlow()
 
     val isCompleted: Boolean
-        get() = profileState.value.improvStyles.isNotEmpty() && profileState.value.bio.isNotEmpty() && profileState.value.goal.isNotEmpty()
+        get() = profileState.value.improvStyles.isNotEmpty() && profileState.value.bio.isNotEmpty() && !profileState.value.goal.isNullOrBlank()
 
     init {
         loadCatalogData()

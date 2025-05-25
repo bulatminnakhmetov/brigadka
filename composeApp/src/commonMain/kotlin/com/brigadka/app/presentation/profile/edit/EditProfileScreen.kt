@@ -40,9 +40,11 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.data.api.models.City
 import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.data.api.models.StringItem
-import com.brigadka.app.data.repository.ProfileView
+import com.brigadka.app.presentation.LocalStrings
+import com.brigadka.app.presentation.common.compose.ChipsPicker
 import com.brigadka.app.presentation.common.compose.CityPicker
 import com.brigadka.app.presentation.common.compose.DatePickerField
+import com.brigadka.app.presentation.common.compose.SwitchRow
 import com.brigadka.app.presentation.common.rememberFilePickerLauncher
 import com.brigadka.app.presentation.profile.common.Avatar
 import com.brigadka.app.presentation.profile.common.LoadableValue
@@ -148,7 +150,7 @@ fun EditProfileScreen(
     ) {
 
         Text(
-            text = "Фото",
+            text = LocalStrings.current.photo,
             style = MaterialTheme.typography.titleMedium
         )
 
@@ -163,15 +165,56 @@ fun EditProfileScreen(
                 .size(160.dp)
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        OutlinedTextField(
+            value = profileState.fullName,
+            onValueChange = { updateFullName(it) },
+            label = { Text("Имя") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+        )
+
+        DatePickerField(
+            label = LocalStrings.current.birthday,
+            selectedDate = profileState.birthday,
+            onDateSelected = { updateBirthday(it) },
+        )
+
+        if (genders.isNotEmpty()) {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(LocalStrings.current.gender)
+
+                ChipsPicker(genders, listOfNotNull(profileState.gender), updateGender)
+            }
+        }
+
+        CityPicker(cities, profileState.cityId, onCitySelected = { cityId ->
+            updateCityId(cityId)
+        })
+
+        OutlinedTextField(
+            value = profileState.bio,
+            onValueChange = { updateBio(it) },
+            label = { Text(LocalStrings.current.bio) },
+            placeholder = { Text(LocalStrings.current.bioPlaceholder) },
+            modifier = Modifier.fillMaxWidth(),
+            minLines = 3,
+            maxLines = 5,
+            shape = MaterialTheme.shapes.medium,
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Видео",
+            text = LocalStrings.current.video,
             style = MaterialTheme.typography.titleMedium
         )
 
         Text(
-            text = "Загрузите видео с джемов или выступлений, чтобы другие импровизаторы могли увидеть вашу игру",
+            text = LocalStrings.current.videoDescription,
             style = MaterialTheme.typography.bodyMedium,
             textAlign = TextAlign.Start,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -187,124 +230,32 @@ fun EditProfileScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        // Basic Info Section
-        OutlinedTextField(
-            value = profileState.fullName,
-            onValueChange = { updateFullName(it) },
-            label = { Text("Имя") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.medium,
-        )
-
-        DatePickerField(
-            label = "Дата рождения",
-            selectedDate = profileState.birthday,
-            onDateSelected = { updateBirthday(it) },
-        )
-
-        if (genders.isNotEmpty()) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Пол")
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    genders.forEach { gender ->
-                        FilterChip(
-                            selected = profileState.gender == gender.code,
-                            onClick = { updateGender(gender.code) },
-                            label = { Text(gender.label) }
-                        )
-                    }
-                }
-            }
-        }
-
-        CityPicker(cities, profileState.cityId, onCitySelected = { cityId ->
-            updateCityId(cityId)
-        })
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Improv Info Section
-        OutlinedTextField(
-            value = profileState.bio,
-            onValueChange = { updateBio(it) },
-            label = { Text("О себе") },
-            placeholder = { Text("Tell more about your experience...") },
-            modifier = Modifier.fillMaxWidth(),
-            minLines = 3,
-            maxLines = 5,
-            shape = MaterialTheme.shapes.medium,
-        )
-
         Text(
-            text = "Your goal in improv",
+            text = LocalStrings.current.yourGoalInImprov,
             style = MaterialTheme.typography.titleMedium
         )
 
         if (improvGoals.isNotEmpty()) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                improvGoals.forEach { goal ->
-                    FilterChip(
-                        selected = profileState.goal == goal.code,
-                        onClick = { updateGoal(goal.code) },
-                        label = { Text(goal.label) }
-                    )
-                }
-            }
+            ChipsPicker(improvGoals, listOfNotNull(profileState.goal), updateGoal, Modifier.fillMaxWidth())
         }
 
         Text(
-            text = "What you like in improv",
+            text = LocalStrings.current.whatImprovDoYouLike,
             style = MaterialTheme.typography.titleMedium
         )
 
         if (improvStyles.isNotEmpty()) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                improvStyles.forEach { style ->
-                    FilterChip(
-                        selected = style.code in profileState.improvStyles,
-                        onClick = { toggleStyle(style.code) },
-                        label = { Text(style.label) }
-                    )
-                }
-            }
+            ChipsPicker(improvStyles, profileState.improvStyles, toggleStyle, Modifier.fillMaxWidth())
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Looking for team",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    text = "Let other improvisers know that you're looking for a team",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = profileState.lookingForTeam,
-                onCheckedChange = { updateLookingForTeam(it) }
-            )
-        }
+        Spacer(modifier = Modifier.height(4.dp))
+
+        SwitchRow(
+            title = LocalStrings.current.lookingForTeam,
+            subtitle = LocalStrings.current.lookingForTeamDescription,
+            checked = profileState.lookingForTeam,
+            onCheckedChange = updateLookingForTeam
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -317,15 +268,15 @@ fun EditProfileTopBar(
     state: EditProfileTopBarState,
 ) {
     TopAppBar(
-        title = { Text("Edit Profile") },
+        title = { Text(LocalStrings.current.editProfile) },
         navigationIcon = {
             IconButton(onClick = state.onBackClick) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = LocalStrings.current.back)
             }
         },
         actions = {
             IconButton(onClick = state.onSaveClick) {
-                Icon(Icons.Default.Done, contentDescription = "Save")
+                Icon(Icons.Default.Done, contentDescription = LocalStrings.current.save)
             }
         }
     )

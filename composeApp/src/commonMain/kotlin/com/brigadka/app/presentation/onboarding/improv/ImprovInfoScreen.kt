@@ -31,6 +31,9 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.data.api.models.StringItem
+import com.brigadka.app.presentation.LocalStrings
+import com.brigadka.app.presentation.common.compose.ChipsPicker
+import com.brigadka.app.presentation.common.compose.SwitchRow
 import com.brigadka.app.presentation.profile.common.LoadableValue
 import com.brigadka.app.presentation.profile.common.ProfileState
 import kotlinx.datetime.LocalDate
@@ -160,8 +163,8 @@ fun ImprovInfoScreen(
         OutlinedTextField(
             value = state.bio,
             onValueChange = { updateBio(it) },
-            label = { Text("О себе") },
-            placeholder = { Text("Раскажите больше про ваш опыт...") },
+            label = { Text(LocalStrings.current.bio) },
+            placeholder = { Text(LocalStrings.current.bioPlaceholder) },
             modifier = Modifier.fillMaxWidth(),
             minLines = 3,
             maxLines = 5,
@@ -171,24 +174,12 @@ fun ImprovInfoScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Ваша цель в импровизации",
+            text = LocalStrings.current.yourGoalInImprov,
             style = MaterialTheme.typography.titleMedium
         )
 
         if (improvGoals.isNotEmpty()) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                improvGoals.forEach { goal ->
-                    FilterChip(
-                        selected = state.goal == goal.code,
-                        onClick = { updateGoal(goal.code) },
-                        label = { Text(goal.label) }
-                    )
-                }
-            }
+            ChipsPicker(improvGoals, listOfNotNull(state.goal), updateGoal, Modifier.fillMaxWidth())
         } else {
             CircularProgressIndicator(modifier = Modifier.size(24.dp))
         }
@@ -201,47 +192,19 @@ fun ImprovInfoScreen(
         )
 
         if (improvStyles.isNotEmpty()) {
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                improvStyles.forEach { style ->
-                    FilterChip(
-                        selected = style.code in state.improvStyles,
-                        onClick = { toggleStyle(style.code) },
-                        label = { Text(style.label) }
-                    )
-                }
-            }
+            ChipsPicker(improvStyles, state.improvStyles, toggleStyle, Modifier.fillMaxWidth())
         } else {
             CircularProgressIndicator(modifier = Modifier.size(24.dp))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(
-                    text = "Ищу команду",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Text(
-                    // TODO: replace newline with proper container sizing
-                    text = "Дайте знать другим импровизаторам,что вы\nищете команду",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Switch(
-                checked = state.lookingForTeam,
-                onCheckedChange = { updateLookingForTeam(it) }
-            )
-        }
+        SwitchRow(
+            title = LocalStrings.current.lookingForTeam,
+            subtitle = LocalStrings.current.lookingForTeamDescription,
+            checked = state.lookingForTeam,
+            onCheckedChange = updateLookingForTeam
+        )
 
         Spacer(modifier = Modifier.weight(1f))
 
@@ -255,7 +218,7 @@ fun ImprovInfoScreen(
                 onClick = { back() },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Назад")
+                Text(LocalStrings.current.back)
             }
 
             Button(
@@ -263,7 +226,7 @@ fun ImprovInfoScreen(
                 modifier = Modifier.weight(1f),
                 enabled = isCompleted
             ) {
-                Text("Продолжить")
+                Text(LocalStrings.current.continueString)
             }
         }
     }
