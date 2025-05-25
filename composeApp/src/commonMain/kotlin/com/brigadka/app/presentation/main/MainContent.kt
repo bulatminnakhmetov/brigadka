@@ -58,7 +58,6 @@ import kotlinx.coroutines.launch
 fun MainContent(component: MainComponent) {
     val childStack by component.childStack.subscribeAsState()
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
 
     // State to hold the current top bar
     var currentTopBarState by remember { mutableStateOf<TopBarState?>(null) }

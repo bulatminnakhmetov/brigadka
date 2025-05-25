@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
@@ -33,7 +34,8 @@ import com.brigadka.app.presentation.common.compose.CityPicker
 import com.brigadka.app.presentation.common.getProfilesPostfix
 import com.brigadka.app.presentation.common.getYearsPostfix
 import com.brigadka.app.presentation.profile.view.ProfileViewContent
-import com.brigadka.app.presentation.profile.view.ProfileViewScreen
+
+private val logger = Logger.withTag("SearchScreen")
 
 @Composable
 fun SearchScreen(component: SearchComponent) {
@@ -168,6 +170,8 @@ fun SearchScreenPreview(showFilters: Boolean) {
         onProfileClick = { }
     )
 }
+
+
 @Composable
 fun SearchScreen(
     state: SearchState,
@@ -242,20 +246,23 @@ fun SearchScreen(
                         val listState = rememberLazyListState()
 
                         // Monitor scroll position to load more data
-                        val shouldLoadMore = remember {
+                        val shouldLoadMore = remember(state.searchResult) {
                             derivedStateOf {
-                                val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
-                                val totalItems = searchResults.profiles.size
+                                // Get the current searchResults from state each time
+                                val searchResult = state.searchResult
 
-                                // If we're close to the end and not already loading, and there are more pages
+                                val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+                                val totalItems = searchResult.profiles.size
+
                                 lastVisibleItem >= totalItems - 3 &&
                                         !state.isLoading &&
-                                        searchResults.page < (searchResults.totalCount / searchResults.pageSize) + 1
+                                        searchResult.page < (searchResult.totalCount / searchResult.pageSize) + 1
                             }
                         }
 
                         LaunchedEffect(shouldLoadMore.value) {
                             if (shouldLoadMore.value) {
+                                logger.d("Loading next page: ${searchResults.page + 1}")
                                 onNextPage()
                             }
                         }

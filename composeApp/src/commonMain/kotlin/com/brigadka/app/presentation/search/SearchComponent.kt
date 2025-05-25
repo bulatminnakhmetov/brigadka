@@ -1,5 +1,6 @@
 package com.brigadka.app.presentation.search
 
+import co.touchlab.kermit.Logger
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
@@ -30,6 +31,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+
+private val logger = Logger.withTag("SearchComponent")
 
 data class SearchTopBarState(
     val query: String,
@@ -193,6 +196,7 @@ class SearchComponent(
                     currentPage = nextPage,
                     isLoading = false
                 )}
+
             } catch (e: Exception) {
                 _state.update { it.copy(
                     error = "Search failed: ${e.message}",
