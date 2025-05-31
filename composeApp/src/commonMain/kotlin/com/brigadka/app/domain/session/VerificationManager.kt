@@ -62,7 +62,7 @@ class VerificationManagerImpl(
                         val status = apiService.getVerificationStatus()
                         if (status.verified) {
                             sessionManager.logout()
-                            uiEventEmitter.emit(UIEvent.Message("Подтверждение успешно выполнено. Теперь вы можете войти!"))
+                            uiEventEmitter.emit(UIEvent.Message("Успех! Теперь вы можете войти!"))
                             stopPolling()
                             break
                         }
