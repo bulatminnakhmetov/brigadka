@@ -18,8 +18,6 @@ import com.brigadka.app.data.repository.MediaRepository
 import com.brigadka.app.data.repository.MediaRepositoryImpl
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.ProfileRepositoryImpl
-import com.brigadka.app.data.api.push.PushTokenRegistrator
-import com.brigadka.app.data.api.push.PushTokenRegistratorImpl
 import com.brigadka.app.data.repository.UserRepository
 import com.brigadka.app.data.repository.UserRepositoryImpl
 import com.brigadka.app.data.repository.Token
@@ -36,6 +34,10 @@ import com.brigadka.app.presentation.root.RootComponent
 import com.brigadka.app.presentation.search.SearchComponent
 import com.brigadka.app.domain.push.PushTokenRegistrationManager
 import com.brigadka.app.domain.push.PushTokenRegistrationManagerImpl
+import com.brigadka.app.domain.verification.VerificationManager
+import com.brigadka.app.domain.verification.VerificationManagerImpl
+import com.brigadka.app.presentation.auth.register.RegisterComponent
+import com.brigadka.app.presentation.auth.register.verification.VerificationComponent
 import com.brigadka.app.presentation.common.UIEventBus
 import com.brigadka.app.presentation.common.UIEventEmitter
 import com.brigadka.app.presentation.profile.edit.EditProfileComponent
@@ -66,6 +68,16 @@ typealias CreateEditProfileComponent = (
     context: ComponentContext,
     onBackClick: () -> Unit,
 ) -> EditProfileComponent
+
+class EditProfileComponentFactory(val create: CreateEditProfileComponent)
+
+class VerificationManagerFactory(val create: CreateVerificationManager)
+
+typealias CreateVerificationManager = (scope: CoroutineScope) -> VerificationManager
+
+typealias CreateVerificationComponent = (context: ComponentContext) -> VerificationComponent
+
+typealias CreateRegisterComponent = (context: ComponentContext, onLoginClick: () -> Unit) -> RegisterComponent
 
 fun initKoin(appModule: Module = module { }, additionalConfig: KoinApplication.() -> Unit = {}): KoinApplication {
     val koinApplication = startKoin {
@@ -136,6 +148,34 @@ val commonModule = module {
         )
     }
 
+    single<VerificationManagerFactory> {
+        VerificationManagerFactory({ scope: CoroutineScope ->
+            VerificationManagerImpl(scope, get(), get(), get(), get<UIEventBus>())
+        })
+    }
+
+    single<CreateVerificationComponent> {
+        { context: ComponentContext ->
+            VerificationComponent(
+                componentContext = context,
+                verificationManagerFactory = get(),
+                sessionManager = get()
+            )
+        }
+    }
+
+    single<CreateRegisterComponent> {
+        { context: ComponentContext, onLoginClick: () -> Unit ->
+            RegisterComponent(
+                componentContext = context,
+                onLoginClick = onLoginClick,
+                createVerificationComponent = get(),
+                sessionManager = get(),
+                userRepository = get(),
+            )
+        }
+    }
+
     // Web socket client
     single<ChatWebSocketClient>(createdAtStart = true) {
         ChatWebSocketClient(
@@ -146,22 +186,17 @@ val commonModule = module {
         )
     }
 
-    single<PushTokenRegistrator> {
-        PushTokenRegistratorImpl(
-            coroutineScope = get(),
-            apiService = get(),
-            deviceIdProvider = get(),
-        )
-    }
 
-    single<SessionManager> { SessionManagerImpl(get(), get(), get(), get()) }
+    single<SessionManager> { SessionManagerImpl(get(), get(), get(), get(), get()) }
 
     single<PushTokenRegistrationManager>(createdAtStart = true) {
         PushTokenRegistrationManagerImpl(
             coroutineScope = get(),
+            userRepository = get(),
             sessionManager = get(),
             pushTokenRepository = get(),
-            pushTokenRegistrator = get()
+            apiService = get(),
+            deviceIdProvider = get()
         )
     }
 
@@ -173,7 +208,10 @@ val commonModule = module {
     factory { (context: ComponentContext) ->
         AuthComponent(
             componentContext = context,
+            uiEventFlowProvider = get<UIEventBus>(),
             sessionManager = get(),
+            createRegisterComponent = get(),
+            userRepository = get(),
         )
     }
 
@@ -189,11 +227,11 @@ val commonModule = module {
         )
     }
 
-    factory<CreateEditProfileComponent> {
-        { context: ComponentContext,
+    factory<EditProfileComponentFactory> {
+        EditProfileComponentFactory({ context: ComponentContext,
           onBackClick: () -> Unit, ->
             get<EditProfileComponent> { parametersOf(context, onBackClick) }
-        }
+        })
     }
 
     factory { (
@@ -211,7 +249,7 @@ val commonModule = module {
             userID = userID,
             onBackClick = onBackClick,
             createChatComponent = get(),
-            createEditProfileComponent = get()
+            editProfileComponentFactory = get()
         )
     }
 
@@ -274,7 +312,7 @@ val commonModule = module {
     }
 
     // Repositories
-    single<ProfileRepository> { ProfileRepositoryImpl(get(), get(), get(), get()) }
+    single<ProfileRepository> { ProfileRepositoryImpl(get(), get(), get()) }
     single<MediaRepository> { MediaRepositoryImpl(get()) }
 
     // Component factories
@@ -292,7 +330,7 @@ val commonModule = module {
     factory { (rootContext: ComponentContext) ->
         RootComponent(
             componentContext = rootContext,
-            sessionManager = get(),
+            userRepository = get(),
             profileRepository = get(),
             createAuthComponent = { context ->
                 get<AuthComponent> { parametersOf(context) }

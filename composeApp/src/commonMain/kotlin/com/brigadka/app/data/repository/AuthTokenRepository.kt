@@ -1,13 +1,21 @@
 package com.brigadka.app.data.repository
 
+import com.brigadka.app.di.HttpClientType
 import kotlinx.coroutines.flow.Flow
 import kotlinx.serialization.Serializable
 import com.russhwolf.settings.Settings
 import com.russhwolf.settings.set
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.authProviders
+import io.ktor.client.plugins.auth.providers.BearerAuthProvider
+import io.ktor.client.plugins.plugin
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.serialization.json.Json
+import org.koin.core.qualifier.named
+import org.koin.mp.KoinPlatform.getKoin
 
 @Serializable
 data class Token(

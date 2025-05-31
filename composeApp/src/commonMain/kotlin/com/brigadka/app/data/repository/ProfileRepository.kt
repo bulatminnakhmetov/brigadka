@@ -66,7 +66,6 @@ interface ProfileRepository {
 class ProfileRepositoryImpl(
     coroutineScope: CoroutineScope,
     private val apiService: BrigadkaApiServiceAuthorized,
-    private val sessionManager: SessionManager,
     private val userRepository: UserRepository,
 ) : ProfileRepository {
 
@@ -75,12 +74,11 @@ class ProfileRepositoryImpl(
 
     init {
         coroutineScope.launch {
-            val currentState = sessionManager.loggingState.value
-            if (currentState is LoggingState.LoggedIn) {
+            if (userRepository.isVerified.value) {
                 loadUserProfile()
             }
-            sessionManager.loggingState.collect { loggingState ->
-                if (loggingState is LoggingState.LoggedIn) {
+            userRepository.isVerified.collect { isVerified ->
+                if (isVerified) {
                     loadUserProfile()
                 }
             }

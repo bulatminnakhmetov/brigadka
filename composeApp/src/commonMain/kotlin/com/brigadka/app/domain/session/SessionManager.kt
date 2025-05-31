@@ -1,5 +1,7 @@
 package com.brigadka.app.domain.session
 
+import com.brigadka.app.data.api.BrigadkaApiService
+import com.brigadka.app.data.api.BrigadkaApiServiceAuthorized
 import com.brigadka.app.data.api.BrigadkaApiServiceUnauthorized
 import com.brigadka.app.data.api.models.LoginRequest
 import com.brigadka.app.data.api.models.RegisterRequest
@@ -9,13 +11,13 @@ import com.brigadka.app.data.repository.UserRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 
 sealed class LoggingState {
-    object LoggingIn : LoggingState()
     object LoggedIn : LoggingState()
     object LoggedOut : LoggingState()
 }
@@ -23,34 +25,22 @@ sealed class LoggingState {
 typealias LogoutObserver = suspend () -> Unit
 
 interface SessionManager {
-    val loggingState: StateFlow<LoggingState>
-
     fun registerLogoutObserver(observer: LogoutObserver)
     suspend fun login(email: String, password: String): AuthResult
     suspend fun register(
         email: String,
         password: String,
     ): AuthResult
-    suspend fun logout()
+    fun logout()
 }
 
 class SessionManagerImpl(
-    private val scope: CoroutineScope,
-    private val apiService: BrigadkaApiServiceUnauthorized,
+    private val coroutineScope: CoroutineScope,
+    private val apiServiceAuthorized: BrigadkaApiServiceAuthorized,
+    private val apiServiceUnauthorized: BrigadkaApiServiceUnauthorized,
     private val authTokenRepository: AuthTokenRepository,
     private val userRepository: UserRepository,
 ) : SessionManager {
-
-    private val _loggingState: MutableStateFlow<LoggingState> = MutableStateFlow(
-        if (userRepository.isLoggedIn) {
-            LoggingState.LoggedIn
-        } else {
-            LoggingState.LoggedOut
-        }
-    )
-
-    override val loggingState: StateFlow<LoggingState> = _loggingState
-
     private val logoutObservers = mutableListOf<LogoutObserver>()
 
     override fun registerLogoutObserver(observer: LogoutObserver) {
@@ -59,15 +49,14 @@ class SessionManagerImpl(
 
     override suspend fun login(email: String, password: String): AuthResult {
         return try {
-            _loggingState.value = LoggingState.LoggingIn
-            val response = apiService.login(LoginRequest(email, password))
+            val response = apiServiceUnauthorized.login(LoginRequest(email, password))
             val token = Token(
                 accessToken = response.token,
                 refreshToken = response.refresh_token
             )
             authTokenRepository.saveToken(token)
             userRepository.setCurrentUserId(response.user_id)
-            _loggingState.value = LoggingState.LoggedIn
+            userRepository.setIsVerified(response.email_verified)
 
             AuthResult(
                 success = true,
@@ -88,14 +77,13 @@ class SessionManagerImpl(
         password: String,
     ): AuthResult {
         return try {
-            val response = apiService.register(RegisterRequest(email = email, password = password))
+            val response = apiServiceUnauthorized.register(RegisterRequest(email = email, password = password))
             val token = Token(
                 accessToken = response.token,
                 refreshToken = response.refresh_token
             )
             authTokenRepository.saveToken(token)
             userRepository.setCurrentUserId(response.user_id)
-            _loggingState.value = LoggingState.LoggedIn
 
             AuthResult(
                 success = true,
@@ -111,12 +99,8 @@ class SessionManagerImpl(
     }
 
     // Also update logout to unregister the push token
-    override suspend fun logout() {
-        authTokenRepository.clearToken()
-        userRepository.clearCurrentUserId()
-
-
-        scope.launch {
+    override fun logout() {
+        coroutineScope.launch {
             // Call all observers in parallel
             logoutObservers.map { observer ->
                 async { observer.invoke() }
@@ -124,8 +108,8 @@ class SessionManagerImpl(
 
             // Now it's safe to clear token and session
             authTokenRepository.clearToken()
-            userRepository.clearCurrentUserId()
-            _loggingState.value = LoggingState.LoggedOut
+            userRepository.clearUser()
+            apiServiceAuthorized.clearTokens()
         }
     }
 }

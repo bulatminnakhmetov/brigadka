@@ -7,6 +7,7 @@ import com.brigadka.app.presentation.AppTheme
 import com.brigadka.app.presentation.auth.login.LoginScreenPreview
 import com.brigadka.app.presentation.auth.register.RegisterScreen
 import com.brigadka.app.presentation.auth.register.RegisterScreenPreview
+import com.brigadka.app.presentation.auth.register.verification.VerificationScreenPreview
 
 @Preview
 @Composable
@@ -25,6 +26,16 @@ fun RegisterScreenPreviewPreview() {
     AppTheme {
         Surface {
             RegisterScreenPreview()
+        }
+    }
+}
+
+@Preview
+@Composable
+fun VerifiactionScreenPreviewPreview() {
+    AppTheme {
+        Surface {
+            VerificationScreenPreview()
         }
     }
 }

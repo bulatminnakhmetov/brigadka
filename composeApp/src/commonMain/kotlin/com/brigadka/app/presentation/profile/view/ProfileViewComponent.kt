@@ -17,6 +17,7 @@ import com.brigadka.app.data.repository.ProfileView
 import com.brigadka.app.data.repository.UserRepository
 import com.brigadka.app.di.CreateChatComponent
 import com.brigadka.app.di.CreateEditProfileComponent
+import com.brigadka.app.di.EditProfileComponentFactory
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.presentation.chat.conversation.ChatComponent
 import com.brigadka.app.presentation.common.TopBarState
@@ -45,7 +46,7 @@ class ProfileViewComponent(
     private val userID: Int? = null,
     val onBackClick: () -> Unit,
     val createChatComponent: CreateChatComponent,
-    val createEditProfileComponent: CreateEditProfileComponent
+    val editProfileComponentFactory: EditProfileComponentFactory
 ) : ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
@@ -70,7 +71,7 @@ class ProfileViewComponent(
             isCurrentUser = isCurrentUser,
             onBackClick = onBackClick,
             onEditProfile = this::onEditProfile,
-            onLogout = { coroutineScope.launch { sessionManager.logout() } }
+            onLogout = { sessionManager.logout() }
         )
 
     init {
@@ -88,7 +89,7 @@ class ProfileViewComponent(
         return when (config) {
             is Config.Profile -> Child.Profile
             is Config.EditProfile -> Child.EditProfile(
-                createEditProfileComponent(
+                editProfileComponentFactory.create(
                     componentContext,
                     this::onNavigateBack
                 )

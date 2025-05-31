@@ -39,17 +39,41 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.arkivanov.decompose.extensions.compose.stack.animation.slide
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.brigadka.app.presentation.auth.AuthComponent
+import com.brigadka.app.presentation.auth.login.LoginScreen
+import com.brigadka.app.presentation.auth.register.verification.VerificationScreen
 
 @Composable
 fun RegisterScreen(component: RegisterComponent) {
-    val state by component.state.collectAsState()
-    RegisterScreen(
-        state = state,
-        onEmailChanged = component::onEmailChanged,
-        onPasswordChanged = component::onPasswordChanged,
-        onRegisterClick = component::onRegisterClick,
-        onLoginClick = component.onLoginClick,
-    )
+    val childStack by component.childStack.subscribeAsState()
+
+    Children(
+        stack = childStack,
+        animation = stackAnimation(fade() + slide()),
+    ) { child ->
+        when (val instance = child.instance) {
+            is RegisterComponent.Child.Register -> {
+                val state by component.state.collectAsState()
+                RegisterScreen(
+                    state = state,
+                    onEmailChanged = component::onEmailChanged,
+                    onPasswordChanged = component::onPasswordChanged,
+                    onRegisterClick = component::onRegisterClick,
+                    onLoginClick = component.onLoginClick,
+                )
+            }
+            is RegisterComponent.Child.Verification -> VerificationScreen(
+                component = instance.component
+            )
+        }
+    }
+
 }
 
 @Composable

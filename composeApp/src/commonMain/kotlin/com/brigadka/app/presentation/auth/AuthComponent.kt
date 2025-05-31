@@ -8,25 +8,49 @@ import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.Value
+import com.brigadka.app.common.coroutineScope
+import com.brigadka.app.data.repository.UserRepository
+import com.brigadka.app.di.CreateRegisterComponent
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.presentation.auth.login.LoginComponent
 import com.brigadka.app.presentation.auth.register.RegisterComponent
+import com.brigadka.app.presentation.common.UIEventFlowProvider
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 class AuthComponent(
     componentContext: ComponentContext,
+    private val uiEventFlowProvider: UIEventFlowProvider,
     private val sessionManager: SessionManager,
-) : ComponentContext by componentContext {
+    private val userRepository: UserRepository,
+    private val createRegisterComponent: CreateRegisterComponent,
+) : ComponentContext by componentContext, UIEventFlowProvider by uiEventFlowProvider {
 
+    private val scope = coroutineScope()
     private val navigation = StackNavigation<Configuration>()
 
     private val stack = childStack(
         source = navigation,
         serializer = Configuration.serializer(),
-        initialConfiguration = Configuration.Login,
+        initialConfiguration = if (userRepository.isLoggedIn.value) Configuration.Register else Configuration.Login,
         handleBackButton = true,
         childFactory = ::createChild
     )
+
+    init {
+        // Observe user login state
+        scope.launch {
+            userRepository.isLoggedIn.collect{ isLoggedIn ->
+                if (isLoggedIn) {
+                    navigateTo(Configuration.Register)
+                } else {
+                    navigateTo(Configuration.Login)
+                }
+            }
+        }
+    }
 
     val childStack: Value<ChildStack<*, Child>> = stack
 
@@ -42,10 +66,8 @@ class AuthComponent(
             )
         )
         is Configuration.Register -> Child.Register(
-            RegisterComponent(
-                componentContext = componentContext,
-                onLoginClick = { navigateTo(Configuration.Login) },
-                sessionManager = sessionManager
+            createRegisterComponent(
+                componentContext, { navigateTo(Configuration.Login) }
             )
         )
     }

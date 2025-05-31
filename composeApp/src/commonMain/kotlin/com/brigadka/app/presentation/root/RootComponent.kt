@@ -10,6 +10,7 @@ import com.arkivanov.decompose.value.Value
 import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.data.repository.ProfileRepository
+import com.brigadka.app.data.repository.UserRepository
 import com.brigadka.app.domain.session.LoggingState
 import com.brigadka.app.presentation.auth.AuthComponent
 import com.brigadka.app.presentation.onboarding.OnboardingComponent
@@ -21,7 +22,7 @@ import kotlinx.serialization.Serializable
 
 class RootComponent(
     componentContext: ComponentContext,
-    private val sessionManager: SessionManager,
+    private val userRepository: UserRepository,
     private val profileRepository: ProfileRepository,
     private val createOnboardingComponent: (ComponentContext, () -> Unit) -> OnboardingComponent,
     private val createAuthComponent: (ComponentContext) -> AuthComponent,
@@ -46,9 +47,9 @@ class RootComponent(
         // Observe the current user ID and profile ID
         coroutineScope.launch {
             // TODO: if profile is loading, onboarding will be shown, but it should be loading screen
-            sessionManager.loggingState.combine(profileRepository.currentUserProfile) { loggingState, profile ->
+            userRepository.isVerified.combine(profileRepository.currentUserProfile) { isVerified, profile ->
                 var result: Configuration? = null
-                if (loggingState is LoggingState.LoggedIn) {
+                if (isVerified) {
                     result = if (profile.isLoading) {
                         Configuration.Loading
                     } else if (profile.value != null) {
@@ -56,15 +57,13 @@ class RootComponent(
                     } else {
                         Configuration.Onboarding
                     }
-                } else if (loggingState is LoggingState.LoggedOut) {
+                } else {
                     result = Configuration.Auth
                 }
                 result
             }.collect { configuration ->
-                if (configuration != null) {
-                    withContext(Dispatchers.Main) {
-                        navigation.replaceAll(configuration)
-                    }
+                withContext(Dispatchers.Main) {
+                    navigation.replaceAll(configuration)
                 }
             }
         }

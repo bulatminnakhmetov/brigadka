@@ -40,6 +40,7 @@ sealed interface UIEvent {
      * Event for when top bar state needs to be updated
      */
     data class TopBarUpdate(val topBarState: TopBarState) : UIEvent
+    data class Message(val text: String) : UIEvent
 }
 
 /**

@@ -3,11 +3,14 @@ package com.brigadka.app.data.api
 import com.brigadka.app.data.api.models.*
 import com.brigadka.app.data.repository.Token
 import com.brigadka.app.data.repository.AuthTokenRepository
+import com.brigadka.app.di.HttpClientType
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.ClientRequestException
 import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.authProviders
+import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.auth.providers.BearerTokens
 import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -32,12 +35,13 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.json.Json
+import org.koin.core.qualifier.named
+import org.koin.mp.KoinPlatform.getKoin
 
 interface BrigadkaApiServiceUnauthorized {
     suspend fun login(request: LoginRequest): AuthResponse
     suspend fun register(request: RegisterRequest): AuthResponse
     suspend fun refreshToken(refreshToken: String): AuthResponse
-    suspend fun verifyToken(token: String): String
 }
 
 interface BrigadkaApiServiceAuthorized {
@@ -72,6 +76,12 @@ interface BrigadkaApiServiceAuthorized {
     // Push endpoints
     suspend fun registerPushToken(request: RegisterPushTokenRequest): Map<String, String>
     suspend fun unregisterPushToken(request: UnregisterPushTokenRequest): Map<String, String>
+
+    // Verification endpoints
+    suspend fun resendVerification(): VerificationResponse
+    suspend fun getVerificationStatus(): VerificationStatusResponse
+
+    fun clearTokens()
 }
 
 interface BrigadkaApiService : BrigadkaApiServiceUnauthorized, BrigadkaApiServiceAuthorized
@@ -99,12 +109,6 @@ class BrigadkaApiServiceUnauthorizedImpl(
         return client.post("$baseUrl/auth/refresh") {
             contentType(ContentType.Application.Json)
             setBody(RefreshRequest(refresh_token = refreshToken))
-        }.body()
-    }
-
-    override suspend fun verifyToken(token: String): String {
-        return client.get("$baseUrl/api/auth/verify") {
-            header("Authorization", "Bearer $token")
         }.body()
     }
 }
@@ -255,6 +259,21 @@ class BrigadkaApiServiceAuthorizedImpl(
             setBody(request)
         }.body()
     }
+
+    override suspend fun resendVerification(): VerificationResponse {
+        return client.post("$baseUrl/auth/resend-verification") {
+            contentType(ContentType.Application.Json)
+            setBody(ResendVerificationRequest())
+        }.body()
+    }
+
+    override suspend fun getVerificationStatus(): VerificationStatusResponse {
+        return client.get("$baseUrl/auth/verification-status").body()
+    }
+
+    override fun clearTokens() {
+        client.authProviders.filterIsInstance<BearerAuthProvider>().firstOrNull()?.clearToken()
+    }
 }
 
 class BrigadkaApiServiceImpl(
@@ -308,6 +327,7 @@ fun createAuthorizedKtorClient(authTokenRepository: AuthTokenRepository, refresh
                     }
                 }
             }
+
             refreshTokens {
                 try {
                     val oldRefreshToken = this.oldTokens?.refreshToken

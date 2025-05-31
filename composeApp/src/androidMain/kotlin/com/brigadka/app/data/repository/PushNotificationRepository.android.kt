@@ -2,7 +2,7 @@ package com.brigadka.app.data.repository
 
 import android.content.Context
 import android.provider.Settings
-import com.brigadka.app.data.api.push.DeviceIdProvider
+import com.brigadka.app.domain.push.DeviceIdProvider
 import java.util.UUID
 
 class DeviceIdProviderAndroid(private val context: Context) : DeviceIdProvider {

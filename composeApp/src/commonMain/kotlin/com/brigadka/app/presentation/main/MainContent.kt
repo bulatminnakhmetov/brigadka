@@ -69,6 +69,9 @@ fun MainContent(component: MainComponent) {
                 is UIEvent.TopBarUpdate -> {
                     currentTopBarState = event.topBarState
                 }
+                is UIEvent.Message -> {
+                    snackbarHostState.showSnackbar(message = event.text,)
+                }
             }
         }
     }

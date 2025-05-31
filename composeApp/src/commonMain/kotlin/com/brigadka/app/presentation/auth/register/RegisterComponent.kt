@@ -1,9 +1,19 @@
 package com.brigadka.app.presentation.auth.register
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.bringToFront
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pushNew
+import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.brigadka.app.common.coroutineScope
+import com.brigadka.app.data.repository.UserRepository
+import com.brigadka.app.di.CreateVerificationComponent
 import com.brigadka.app.domain.session.SessionManager
+import com.brigadka.app.presentation.auth.login.LoginComponent
+import com.brigadka.app.presentation.auth.register.verification.VerificationComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -13,11 +23,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 
 class RegisterComponent(
     componentContext: ComponentContext,
     val onLoginClick: () -> Unit,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val userRepository: UserRepository,
+    private val createVerificationComponent: CreateVerificationComponent,
 ) : ComponentContext by componentContext {
 
     private val scope = coroutineScope()
@@ -28,6 +41,16 @@ class RegisterComponent(
     init {
         lifecycle.doOnDestroy {
             scope.cancel()
+        }
+        scope.launch {
+            // Observe user registration state
+            userRepository.isLoggedIn.collect { isLoggedIn ->
+                if (isLoggedIn) {
+                    navigateTo(Configuration.Verification)
+                } else {
+                    navigateTo(Configuration.Register)
+                }
+            }
         }
     }
 
@@ -93,4 +116,60 @@ class RegisterComponent(
         val emailError: String? = null,
         val passwordError: String? = null
     )
+
+
+    private val navigation = StackNavigation<Configuration>()
+
+    private val stack = childStack(
+        source = navigation,
+        serializer = Configuration.serializer(),
+        initialConfiguration = Configuration.Register,
+        handleBackButton = true,
+        childFactory = ::createChild
+    )
+
+    val childStack: Value<ChildStack<*, Child>> = stack
+
+    private fun createChild(
+        configuration: Configuration,
+        componentContext: ComponentContext
+    ): Child = when (configuration) {
+        is Configuration.Verification -> Child.Verification(
+            createVerificationComponent(componentContext)
+        )
+        is Configuration.Register -> Child.Register
+    }
+
+    // TODO: same fuctionality in MainComponent, consider moving to base class
+    fun navigateTo(screen: Configuration) {
+        val stackItems = childStack.value.items
+        val existingIndex = stackItems.indexOfFirst { it.configuration == screen }
+
+        if (childStack.value.active.configuration == screen) {
+            // Already on this screen, do nothing
+            return
+        }
+
+        if (existingIndex != -1) {
+            // Screen is in stack, bring to front
+            navigation.bringToFront(screen)
+        } else {
+            // Not in stack, push it
+            navigation.pushNew(screen)
+        }
+    }
+
+    @Serializable
+    sealed class Configuration {
+        @Serializable
+        object Register : Configuration()
+
+        @Serializable
+        object Verification : Configuration()
+    }
+
+    sealed class Child {
+        data class Verification(val component: VerificationComponent) : Child()
+        data object Register : Child()
+    }
 }
