@@ -110,7 +110,7 @@ fun RegisterScreen(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Создать аккаунт",
+            text = "Регистрация",
             style = MaterialTheme.typography.displayMedium
         )
 
@@ -195,7 +195,7 @@ fun RegisterScreen(
             Text("Создать аккаунт")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         TextButton(
             onClick = onLoginClick,

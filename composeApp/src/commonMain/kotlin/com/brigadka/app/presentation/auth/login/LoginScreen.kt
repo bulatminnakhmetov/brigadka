@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -73,7 +74,8 @@ fun LoginScreen(
     ) {
         Text(
             text = "Добро пожаловать",
-            style = MaterialTheme.typography.displayMedium
+            style = MaterialTheme.typography.displaySmall,
+            textAlign = TextAlign.Center,
         )
 
         Spacer(modifier = Modifier.height(32.dp))
@@ -157,7 +159,7 @@ fun LoginScreen(
             Text("Войти")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         TextButton(
             onClick = onRegisterClick,

@@ -46,16 +46,15 @@ private fun VerificationContent(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Подтверждение электронной почты",
+            text = "Подтвердите почту",
             style = MaterialTheme.typography.displaySmall,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text =  "Мы отправили ссылку для подтверждения на вашу электронную почту. " +
-                    "Пожалуйста, проверьте почту и перейдите по ссылке.",
+            text =  "Мы отправили вам ссылку на почту. Как только вы подтвердите, этот экран закроется сам.",
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center
         )
@@ -76,7 +75,7 @@ private fun VerificationContent(
             Text("Отправить повторно")
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedButton(
             onClick = onResetClick,
