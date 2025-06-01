@@ -28,18 +28,19 @@ class PushTokenRegistrationManagerImpl(
     init {
         coroutineScope.launch {
             userRepository.isVerified.combine(pushTokenRepository.token) { loggingState, token -> loggingState to token }
-                .collect { (isLoggedIn, token) ->
-                    logger.d("Received token: $token, loggingState: $isLoggedIn")
+                .collect { (isVerified, token) ->
+                    logger.d("Received token: $token, loggingState: $isVerified")
 
-                    if (token != null && isLoggedIn) {
+                    if (token != null && isVerified) {
+                        logger.d("Registering push token")
                         registerPushToken(token)
                     }
                 }
         }
         sessionManager.registerLogoutObserver {
-            logger.d("Unregistering push token")
             val token = pushTokenRepository.token.value
-            if (token != null) {
+            if (token != null && userRepository.isVerified.value) {
+                logger.d("Unregistering push token")
                 unregisterPushToken(token)
             }
         }

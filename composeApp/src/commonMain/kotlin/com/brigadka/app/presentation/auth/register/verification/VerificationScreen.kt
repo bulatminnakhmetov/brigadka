@@ -24,9 +24,11 @@ import com.brigadka.app.domain.verification.VerificationState
 @Composable
 fun VerificationScreen(component: VerificationComponent) {
     val state by component.state.collectAsState()
+    val cooldown by component.resendCooldown.collectAsState()
 
     VerificationContent(
         state = state,
+        cooldown = cooldown,
         onResendClick = component::onResend,
         onResetClick = component::onReset
     )
@@ -35,6 +37,7 @@ fun VerificationScreen(component: VerificationComponent) {
 @Composable
 private fun VerificationContent(
     state: VerificationState,
+    cooldown: Int,
     onResendClick: () -> Unit,
     onResetClick: () -> Unit
 ) {
@@ -64,15 +67,20 @@ private fun VerificationContent(
         Button(
             onClick = onResendClick,
             modifier = Modifier.fillMaxWidth(0.8f),
-            enabled = state != VerificationState.RESENDING
+            enabled = state != VerificationState.RESENDING && cooldown <= 0
         ) {
             if (state == VerificationState.RESENDING) {
                 CircularProgressIndicator(
                     modifier = Modifier.padding(end = 8.dp),
                     color = MaterialTheme.colorScheme.onPrimary
                 )
+            } else {
+                if (cooldown > 0) {
+                    Text("Отправить повторно ($cooldown сек)")
+                } else {
+                    Text("Отправить повторно")
+                }
             }
-            Text("Отправить повторно")
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -90,7 +98,8 @@ private fun VerificationContent(
 fun VerificationScreenPreview() {
     VerificationContent(
         state = VerificationState.NOT_VERIFIED,
+        cooldown = 50,
         onResendClick = {},
-        onResetClick = {}
+        onResetClick = {},
     )
 }

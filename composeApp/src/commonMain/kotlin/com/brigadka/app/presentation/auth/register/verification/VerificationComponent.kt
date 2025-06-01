@@ -1,11 +1,8 @@
 package com.brigadka.app.presentation.auth.register.verification
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.essenty.lifecycle.doOnStop
 import com.arkivanov.essenty.lifecycle.subscribe
 import com.brigadka.app.common.coroutineScope
-import com.brigadka.app.data.repository.UserRepository
-import com.brigadka.app.di.CreateVerificationManager
 import com.brigadka.app.di.VerificationManagerFactory
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.domain.verification.VerificationManager
@@ -21,19 +18,21 @@ class VerificationComponent(
 
     private val scope = coroutineScope()
     private val verificationManager: VerificationManager = verificationManagerFactory.create(scope)
-
     val state: StateFlow<VerificationState> = verificationManager.state
 
+    val resendCooldown: StateFlow<Int> = verificationManager.resendCooldown
+
     init {
+
         lifecycle.subscribe(
-            onStop = {
-                // Handle any cleanup or stopping tasks here
-                verificationManager.stopPolling()
-            },
             onStart = {
                 // Start any necessary tasks when the component starts
-                verificationManager.startPolling()
-            }
+                verificationManager.start()
+            },
+            onStop = {
+                // Handle any cleanup or stopping tasks here
+                verificationManager.stop()
+            },
         )
     }
 
@@ -44,7 +43,6 @@ class VerificationComponent(
     }
 
     fun onReset() {
-        verificationManager.stopPolling()
         sessionManager.logout()
     }
 }

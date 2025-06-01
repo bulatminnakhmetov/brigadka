@@ -150,7 +150,7 @@ val commonModule = module {
 
     single<VerificationManagerFactory> {
         VerificationManagerFactory({ scope: CoroutineScope ->
-            VerificationManagerImpl(scope, get(), get(), get(), get<UIEventBus>())
+            VerificationManagerImpl(scope, get(), get(), get<UIEventBus>())
         })
     }
 

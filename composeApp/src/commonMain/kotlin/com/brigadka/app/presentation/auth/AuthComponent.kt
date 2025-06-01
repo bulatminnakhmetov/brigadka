@@ -7,6 +7,7 @@ import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.pushNew
+import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
 import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.repository.UserRepository
@@ -44,9 +45,9 @@ class AuthComponent(
         scope.launch {
             userRepository.isLoggedIn.collect{ isLoggedIn ->
                 if (isLoggedIn) {
-                    navigateTo(Configuration.Register)
+                    navigation.replaceAll(Configuration.Register)
                 } else {
-                    navigateTo(Configuration.Login)
+                    navigation.replaceAll(Configuration.Login)
                 }
             }
         }
@@ -61,35 +62,35 @@ class AuthComponent(
         is Configuration.Login -> Child.Login(
             LoginComponent(
                 componentContext = componentContext,
-                navigateToRegister = { navigateTo(Configuration.Register) },
+                navigateToRegister = { navigation.replaceAll(Configuration.Register) },
                 sessionManager = sessionManager
             )
         )
         is Configuration.Register -> Child.Register(
             createRegisterComponent(
-                componentContext, { navigateTo(Configuration.Login) }
+                componentContext, { navigation.replaceAll(Configuration.Login) }
             )
         )
     }
-
-    // TODO: same fuctionality in MainComponent, consider moving to base class
-    fun navigateTo(screen: Configuration) {
-        val stackItems = childStack.value.items
-        val existingIndex = stackItems.indexOfFirst { it.configuration == screen }
-
-        if (childStack.value.active.configuration == screen) {
-            // Already on this screen, do nothing
-            return
-        }
-
-        if (existingIndex != -1) {
-            // Screen is in stack, bring to front
-            navigation.bringToFront(screen)
-        } else {
-            // Not in stack, push it
-            navigation.pushNew(screen)
-        }
-    }
+//
+//    // TODO: same fuctionality in MainComponent, consider moving to base class
+//    fun navigateTo(screen: Configuration) {
+//        val stackItems = childStack.value.items
+//        val existingIndex = stackItems.indexOfFirst { it.configuration == screen }
+//
+//        if (childStack.value.active.configuration == screen) {
+//            // Already on this screen, do nothing
+//            return
+//        }
+//
+//        if (existingIndex != -1) {
+//            // Screen is in stack, bring to front
+//            navigation.bringToFront(screen)
+//        } else {
+//            // Not in stack, push it
+//            navigation.pushNew(screen)
+//        }
+//    }
 
     @Serializable
     sealed class Configuration {
