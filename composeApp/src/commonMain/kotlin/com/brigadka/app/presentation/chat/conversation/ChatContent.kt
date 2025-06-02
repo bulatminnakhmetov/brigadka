@@ -16,6 +16,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
@@ -173,33 +175,30 @@ private fun MessageBubble(
     onReactionClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(
+            start = if (isFromCurrentUser) 16.dp else 4.dp,
+            end = if (isFromCurrentUser) 4.dp else 16.dp,
+        ),
         horizontalAlignment = if (isFromCurrentUser) Alignment.End else Alignment.Start
     ) {
-        Surface(
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isFromCurrentUser) 16.dp else 0.dp,
-                bottomEnd = if (isFromCurrentUser) 0.dp else 16.dp
-            ),
-            color = if (isFromCurrentUser)
-                MaterialTheme.colorScheme.surface
-            else
-                MaterialTheme.colorScheme.surfaceVariant
+        val shape = RoundedCornerShape(
+            bottomStart = 16.dp,
+            bottomEnd = 16.dp,
+            topStart = if (isFromCurrentUser) 16.dp else 0.dp,
+            topEnd = if (isFromCurrentUser) 0.dp else 16.dp
+        )
+
+        Column(
+            modifier = Modifier
+                .shadow(elevation = 1.dp, shape = shape)
+                .background(color = if (isFromCurrentUser) MaterialTheme.colorScheme.secondaryContainer else Color.White, shape = shape)
+                .padding(horizontal = 14.dp, vertical = 10.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-            ) {
-                Text(
-                    text = message.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isFromCurrentUser)
-                        MaterialTheme.colorScheme.onPrimaryContainer
-                    else
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+            Text(
+                text = message.content,
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.Black
+            )
         }
 
         Spacer(modifier = Modifier.height(2.dp))
