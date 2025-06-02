@@ -6,6 +6,7 @@ import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.childStack
 import com.arkivanov.decompose.router.stack.pop
 import com.arkivanov.decompose.router.stack.push
+import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
@@ -15,8 +16,7 @@ import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.presentation.profile.common.LoadableValue
 import com.brigadka.app.data.repository.ProfileView
 import com.brigadka.app.data.repository.UserRepository
-import com.brigadka.app.di.CreateChatComponent
-import com.brigadka.app.di.CreateEditProfileComponent
+import com.brigadka.app.di.ChatComponentFactory
 import com.brigadka.app.di.EditProfileComponentFactory
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.presentation.chat.conversation.ChatComponent
@@ -39,14 +39,15 @@ data class ProfileViewTopBarState(
 class ProfileViewComponent(
     componentContext: ComponentContext,
     private val uiEventEmitter: UIEventEmitter,
-    private val brigadkaApiService: BrigadkaApiService,
     private val userRepository: UserRepository,
     private val profileRepository: ProfileRepository,
+    private val brigadkaApiService: BrigadkaApiService,
     private val sessionManager: SessionManager,
     private val userID: Int? = null,
     val onBackClick: () -> Unit,
-    val createChatComponent: CreateChatComponent,
-    val editProfileComponentFactory: EditProfileComponentFactory
+    val chatComponentFactory: ChatComponentFactory,
+    val editProfileComponentFactory: EditProfileComponentFactory,
+    private val onContactClick: (() -> Unit)? = null,
 ) : ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Config>()
@@ -95,9 +96,10 @@ class ProfileViewComponent(
                 )
             )
             is Config.Chat -> Child.Chat(
-                createChatComponent(
+                chatComponentFactory.create(
                     componentContext,
                     config.chatId,
+                    userID!!, // TODO handle null userID
                     this::onNavigateBack
                 )
             )
@@ -121,18 +123,23 @@ class ProfileViewComponent(
         if (!isCurrentUser) {
             return
         }
-        navigation.push(Config.EditProfile)
+        navigation.pushNew(Config.EditProfile)
     }
 
     fun onContactClick() {
         if (userID == null) {
             return
         }
+        if (onContactClick != null) {
+            onContactClick.invoke()
+            return
+        }
+
         coroutineScope.launch {
             try {
                 val chatId = brigadkaApiService.getOrCreateDirectChat(userID).chat_id
                 withContext(Dispatchers.Main) {
-                    navigation.push(Config.Chat(chatId))
+                    navigation.pushNew(Config.Chat(chatId))
                 }
             } catch (e: Exception) {
                 // Handle error
@@ -142,9 +149,6 @@ class ProfileViewComponent(
 
     private val isCurrentUser: Boolean
         get() = userID == null || userID == userRepository.requireUserId()
-
-    val isEditable: Boolean
-        get() = isCurrentUser
 
     val isContactable: Boolean
         get() = !isCurrentUser

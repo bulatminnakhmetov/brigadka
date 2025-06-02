@@ -1,6 +1,5 @@
 package com.brigadka.app.data.repository
 
-import com.brigadka.app.data.api.push.DeviceIdProvider
 import com.brigadka.app.domain.push.DeviceIdProvider
 import platform.Foundation.NSUserDefaults
 import platform.Foundation.NSUUID

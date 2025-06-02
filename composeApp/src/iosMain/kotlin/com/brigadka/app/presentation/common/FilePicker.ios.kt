@@ -3,44 +3,38 @@ package com.brigadka.app.presentation.common
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
+import io.kamel.core.utils.File
 import kotlinx.cinterop.BetaInteropApi
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.addressOf
 import kotlinx.cinterop.usePinned
-import platform.Foundation.NSData
-import platform.Foundation.NSURL
-import platform.Foundation.dataWithContentsOfURL
-import platform.UIKit.UIDocumentPickerViewController
-import platform.UIKit.UIDocumentPickerDelegateProtocol
-import platform.UIKit.UIDocumentPickerMode
+import kotlinx.datetime.Clock
 import platform.UIKit.UIViewController
 import platform.UIKit.UIApplication
-import platform.UIKit.UIModalPresentationFormSheet
 import platform.darwin.NSObject
 import platform.posix.memcpy
+import platform.PhotosUI.PHPickerConfiguration
+import platform.PhotosUI.PHPickerFilter
+import platform.PhotosUI.PHPickerResult
+import platform.PhotosUI.PHPickerViewController
+import platform.PhotosUI.PHPickerViewControllerDelegateProtocol
+import platform.UniformTypeIdentifiers.UTType          // iOS 14+
+import platform.Foundation.NSData
+import platform.Foundation.dataWithContentsOfURL
+import platform.UniformTypeIdentifiers.UTTypeImage
+import platform.UniformTypeIdentifiers.UTTypeMovie
 
-@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+
 @Composable
 actual fun rememberFilePickerLauncher(
-    fileType: String,
+    fileType: FileType,
     onFilePicked: (ByteArray, String) -> Unit,
     onError: (String) -> Unit
 ): FilePickerLauncher {
     val uiViewController = UIViewController.currentViewController()
 
-    // Parse file type to UTI
-    val uti = when {
-        fileType == "image/*" -> listOf("public.image")
-        fileType == "video/*" -> listOf("public.movie")
-        fileType.contains("/*") -> {
-            val mainType = fileType.split("/")[0]
-            listOf("public.$mainType")
-        }
-        else -> listOf(fileType)
-    }
-
     val delegate = remember {
-        DocumentPickerDelegate(
+        PhotoPickerDelegate(
             onFilePicked = { data, fileName ->
                 onFilePicked(data, fileName)
             },
@@ -59,53 +53,88 @@ actual fun rememberFilePickerLauncher(
     return remember {
         object : FilePickerLauncher {
             override fun launch() {
-                val documentPicker = UIDocumentPickerViewController(
-                    documentTypes = uti,
-                    inMode = UIDocumentPickerMode.UIDocumentPickerModeImport
-                )
-                documentPicker.delegate = delegate
-                documentPicker.modalPresentationStyle = UIModalPresentationFormSheet
-                uiViewController.presentViewController(documentPicker, true, null)
+                val configuration = PHPickerConfiguration()
+
+                if (fileType == FileType.VIDEO) {
+                    configuration.setFilter(PHPickerFilter.videosFilter())
+                } else if (fileType == FileType.IMAGE) {
+                    configuration.setFilter(PHPickerFilter.imagesFilter())
+                } else {
+                    // TODO
+                    onError("Unsupported file type: $fileType")
+                    return
+                }
+
+                // For multiple selection (optional):
+                // configuration.setSelectionLimit(0) // 0 means no limit
+
+                val pickerViewController = PHPickerViewController(configuration)
+                pickerViewController.delegate = delegate
+                uiViewController.presentViewController(pickerViewController, true, null)
             }
         }
     }
 }
 
 @OptIn(ExperimentalForeignApi::class)
-private class DocumentPickerDelegate(
+private class PhotoPickerDelegate(
     private val onFilePicked: (ByteArray, String) -> Unit,
     private val onError: (String) -> Unit
-) : NSObject(), UIDocumentPickerDelegateProtocol {
+) : NSObject(), PHPickerViewControllerDelegateProtocol {
 
-    override fun documentPicker(
-        controller: UIDocumentPickerViewController,
-        didPickDocumentsAtURLs: List<*>
+    override fun picker(
+        picker: PHPickerViewController,
+        didFinishPicking: List<*>
     ) {
-        val url = didPickDocumentsAtURLs.firstOrNull() as? NSURL ?: run {
-            onError("No document selected")
-            return
-        }
+        // Grab the results *before* we dismiss – no need for a completion block.
+        val first = didFinishPicking.filterIsInstance<PHPickerResult>().firstOrNull()
+        picker.dismissViewControllerAnimated(true, null)
 
-        try {
-            val fileName = url.lastPathComponent ?: "unknown_file"
-            val data = NSData.Companion.dataWithContentsOfURL(url) ?: run {
-                onError("Could not read file data")
-                return
+        val provider = first?.itemProvider ?: return          // user cancelled
+
+        when {
+            // ---------- VIDEO ----------
+            provider.hasItemConformingToTypeIdentifier(UTTypeMovie.identifier) -> {
+                provider.loadFileRepresentationForTypeIdentifier(
+                    UTTypeMovie.identifier
+                ) { url, error ->
+                    if (error != null) {
+                        onError("Error loading video: ${error.localizedDescription}")
+                        return@loadFileRepresentationForTypeIdentifier
+                    }
+                    url?.let { videoUrl ->
+                        // Read the file into memory (or just hand back the URL if that’s enough).
+                        val nsData = NSData.dataWithContentsOfURL(videoUrl)
+                        nsData?.let { data ->
+                            val bytes = ByteArray(data.length.toInt())
+                            bytes.usePinned { pinned -> memcpy(pinned.addressOf(0), data.bytes, data.length) }
+                            val fileName = "video_${Clock.System.now().toEpochMilliseconds()}.mov"
+                            onFilePicked(bytes, fileName)
+                        }
+                    }
+                }
             }
 
-            val bytes = ByteArray(data.length.toInt())
-            bytes.usePinned { pinnedBytes ->
-                memcpy(pinnedBytes.addressOf(0), data.bytes, data.length)
+            // ---------- IMAGE ----------
+            provider.hasItemConformingToTypeIdentifier(UTTypeImage.identifier) -> {
+                provider.loadDataRepresentationForTypeIdentifier(
+                    UTTypeImage.identifier
+                ) { data, error ->
+                    if (error != null) {
+                        onError("Error loading image: ${error.localizedDescription}")
+                        return@loadDataRepresentationForTypeIdentifier
+                    }
+                    data?.let {
+                        val bytes = ByteArray(it.length.toInt())
+                        bytes.usePinned { pinned -> memcpy(pinned.addressOf(0), it.bytes, it.length) }
+                        val fileName = "image_${Clock.System.now().toEpochMilliseconds()}.jpg"
+                        onFilePicked(bytes, fileName)
+                    }
+                }
             }
 
-            onFilePicked(bytes, fileName)
-        } catch (e: Exception) {
-            onError("Error reading file: ${e.message}")
+            else -> onError("Unsupported UTType")
         }
-    }
-
-    override fun documentPickerWasCancelled(controller: UIDocumentPickerViewController) {
-        // User canceled, do nothing
     }
 }
 

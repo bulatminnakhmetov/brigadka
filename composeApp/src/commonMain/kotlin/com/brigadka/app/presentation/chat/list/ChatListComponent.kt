@@ -1,12 +1,20 @@
 package com.brigadka.app.presentation.chat.list
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.pushNew
+import com.arkivanov.decompose.value.Value
 import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.api.BrigadkaApiService
 import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.data.api.websocket.ChatWebSocketClient
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.UserRepository
+import com.brigadka.app.di.ChatComponentFactory
+import com.brigadka.app.presentation.chat.conversation.ChatComponent
 import com.brigadka.app.presentation.common.TopBarState
 import com.brigadka.app.presentation.common.UIEvent
 import com.brigadka.app.presentation.common.UIEventEmitter
@@ -21,6 +29,7 @@ import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.serialization.Serializable
 
 data object ChatListTopBarState: TopBarState
 
@@ -31,13 +40,40 @@ class ChatListComponent(
     private val profileRepository: ProfileRepository,
     private val userRepository: UserRepository,
     private val webSocketClient: ChatWebSocketClient,
-    private val onChatSelected: (String) -> Unit
+    private val chatComponentFactory: ChatComponentFactory,
 ) : ComponentContext by componentContext {
 
     private val scope = coroutineScope()
 
-    private val _uiState = MutableStateFlow(UiState())
-    val uiState: StateFlow<UiState> = _uiState.asStateFlow()
+    private val _chatListState = MutableStateFlow(ChatListState())
+    val chatListState: StateFlow<ChatListState> = _chatListState.asStateFlow()
+
+    private val navigation = StackNavigation<Config>()
+
+    private val _stack = childStack(
+        source = navigation,
+        initialConfiguration = Config.ChatList,
+        handleBackButton = true,
+        childFactory = ::createChild,
+        serializer = Config.serializer()
+    )
+
+    val childStack: Value<ChildStack<Config, Child>> = _stack
+
+    private fun createChild(config: Config, componentContext: ComponentContext): Child {
+        return when (config) {
+            is Config.Chat -> Child.Chat(
+                chatComponentFactory.create(
+                    componentContext,
+                    config.chatId,
+                    config.otherUserID!!, // TODO: create chat repository and pass only chat id
+                    { navigation.pop() }
+                )
+            )
+            is Config.ChatList -> Child.ChatList
+        }
+    }
+
 
     init {
         loadChats()
@@ -52,7 +88,7 @@ class ChatListComponent(
     }
 
     private fun loadChats() {
-        _uiState.update { it.copy(isLoading = true) }
+        _chatListState.update { it.copy(isLoading = true) }
 
         scope.launch {
             try {
@@ -67,6 +103,7 @@ class ChatListComponent(
                     // Get other participant profile for direct chats
                     var name = chat.chat_name
                     var avatar: MediaItem? = null
+                    var userID: Int? = null
 
                     if (!chat.is_group && chat.participants.isNotEmpty()) {
                         val currentUserId = userRepository.requireUserId()
@@ -76,6 +113,7 @@ class ChatListComponent(
                                 val otherProfile = profileRepository.getProfileView(otherParticipants.first())
                                 name = otherProfile.fullName
                                 avatar = otherProfile.avatar
+                                userID = otherProfile.userID
                             } catch (e: Exception) {
                                 // Use default name if profile fetch fails
                             }
@@ -85,6 +123,7 @@ class ChatListComponent(
                     chatPreviews.add(
                         ChatPreview(
                             chatId = chat.chat_id,
+                            userID = userID,
                             name = name,
                             avatar = avatar,
                             lastMessage = lastMessage?.content,
@@ -94,7 +133,7 @@ class ChatListComponent(
                     )
                 }
 
-                _uiState.update { it.copy(
+                _chatListState.update { it.copy(
                     isLoading = false,
                     chats = chatPreviews.sortedByDescending {
                         it.lastMessageTime // Sort by last message time
@@ -102,7 +141,7 @@ class ChatListComponent(
                 ) }
 
             } catch (e: Exception) {
-                _uiState.update { it.copy(
+                _chatListState.update { it.copy(
                     isLoading = false,
                     error = e
                 ) }
@@ -114,32 +153,32 @@ class ChatListComponent(
         uiEventEmitter.emit(UIEvent.TopBarUpdate(ChatListTopBarState))
     }
 
-    fun onChatSelected(chatId: String) {
-        onChatSelected.invoke(chatId)
+    fun onChatClick(chatId: String, userID: Int? = null) {
+        navigation.pushNew(Config.Chat(chatId, userID))
     }
 
     fun onError(error: String) {
         // TODO: Log or handle error
     }
 
-    private fun formatMessageTime(timestamp: String): String {
+    private fun formatMessageTime(instant: Instant): String {
         try {
-            val instant = Instant.parse(timestamp)
-            val localDateTime = instant.toLocalDateTime(TimeZone.currentSystemDefault())
-            val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+            val timezone = TimeZone.currentSystemDefault()
+            val timestamp = instant.toLocalDateTime(timezone)
+            val now = Clock.System.now().toLocalDateTime(timezone)
 
             return when {
                 // Today
-                localDateTime.date == now.date -> {
-                    "${localDateTime.hour.toString().padStart(2, '0')}:${localDateTime.minute.toString().padStart(2, '0')}"
+                timestamp.date == now.date -> {
+                    "${timestamp.hour.toString().padStart(2, '0')}:${timestamp.minute.toString().padStart(2, '0')}"
                 }
                 // Yesterday
-                localDateTime.date.daysUntil(now.date) == 1 -> {
+                timestamp.date.daysUntil(now.date) == 1 -> {
                     "Yesterday"
                 }
                 // This week
-                localDateTime.date.daysUntil(now.date) < 7 -> {
-                    when (localDateTime.dayOfWeek) {
+                timestamp.date.daysUntil(now.date) < 7 -> {
+                    when (timestamp.dayOfWeek) {
                         DayOfWeek.MONDAY -> "Mon"
                         DayOfWeek.TUESDAY -> "Tue"
                         DayOfWeek.WEDNESDAY -> "Wed"
@@ -152,7 +191,7 @@ class ChatListComponent(
                 }
                 // Older
                 else -> {
-                    "${localDateTime.monthNumber}/${localDateTime.dayOfMonth}"
+                    "${timestamp.monthNumber}/${timestamp.dayOfMonth}"
                 }
             }
         } catch (e: Exception) {
@@ -160,7 +199,20 @@ class ChatListComponent(
         }
     }
 
-    data class UiState(
+    @Serializable
+    sealed class Config {
+        @Serializable
+        data class Chat(val chatId: String, val otherUserID: Int?) : Config()
+        @Serializable
+        data object ChatList: Config()
+    }
+
+    sealed class Child {
+        data class Chat(val component: ChatComponent) : Child()
+        data object ChatList : Child()
+    }
+
+    data class ChatListState(
         val isLoading: Boolean = false,
         val chats: List<ChatPreview> = emptyList(),
         val error: Throwable? = null
@@ -169,6 +221,7 @@ class ChatListComponent(
     data class ChatPreview(
         val chatId: String,
         val name: String,
+        val userID: Int? = null,
         val avatar: MediaItem?,
         val lastMessage: String?,
         val lastMessageTime: String?,

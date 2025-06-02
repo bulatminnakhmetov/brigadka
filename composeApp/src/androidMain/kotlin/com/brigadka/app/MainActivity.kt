@@ -27,6 +27,7 @@ import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.defaultComponentContext
 import com.brigadka.app.data.notification.PushNotificationServiceAndroid
 import com.brigadka.app.data.repository.PushTokenRepository
+import com.brigadka.app.di.RootComponentFactory
 import com.brigadka.app.domain.notification.PushNotificationService
 import com.brigadka.app.presentation.root.RootComponent
 import com.brigadka.app.presentation.root.RootContent
@@ -51,7 +52,8 @@ class MainActivity : ComponentActivity() {
 
         val koin = GlobalContext.get()
 
-        val rootComponent: RootComponent by koin.inject { parametersOf(defaultComponentContext()) }
+        val rootComponentFactory: RootComponentFactory by koin.inject()
+        val rootComponent = rootComponentFactory.create(defaultComponentContext())
 
         val pushTokenRepository: PushTokenRepository by koin.inject()
 

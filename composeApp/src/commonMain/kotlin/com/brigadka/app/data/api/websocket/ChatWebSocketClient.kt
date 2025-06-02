@@ -1,6 +1,9 @@
 package com.brigadka.app.data.api.websocket
 
+import co.touchlab.kermit.Logger
 import com.brigadka.app.data.repository.AuthTokenRepository
+import com.brigadka.app.presentation.common.UIEvent
+import com.brigadka.app.presentation.common.UIEventEmitter
 import io.ktor.client.*
 import io.ktor.client.plugins.websocket.*
 import io.ktor.http.*
@@ -17,11 +20,14 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+private val logger = Logger.withTag("ChatWebSocketClient")
+
 class ChatWebSocketClient(
     private val httpClient: HttpClient,
     private val authTokenRepository: AuthTokenRepository,
     private val baseUrl: String,
     private val coroutineScope: CoroutineScope,
+    private val uiEventEmitter: UIEventEmitter
 ) {
 
     private val json: Json = Json {
@@ -86,7 +92,7 @@ class ChatWebSocketClient(
     // Reconnection settings
     private var isReconnectionEnabled = true
     private var baseRetryDelaySeconds = 1L
-    private var maxRetryDelaySeconds = 30L
+    private var maxRetryDelaySeconds = 60L
     private var maxRetryAttempts = 10
     private var currentRetryAttempt = 0
 
@@ -154,14 +160,13 @@ class ChatWebSocketClient(
 
     private fun scheduleReconnectionIfNeeded() {
         if (!isReconnectionEnabled) return
-        if (currentRetryAttempt >= maxRetryAttempts) return
         if (_connectionState.value == ConnectionState.CONNECTED) return
         if (reconnectionJob?.isActive == true) return
 
         currentRetryAttempt++
         // Calculate backoff delay with exponential increase
         val delaySeconds = min(
-            baseRetryDelaySeconds * (1 shl (currentRetryAttempt - 1)),
+            baseRetryDelaySeconds * (1 shl min(20, (currentRetryAttempt - 1))),
             maxRetryDelaySeconds
         )
 
@@ -252,7 +257,8 @@ class ChatWebSocketClient(
                 val messageJson = json.encodeToString(message)
                 session?.send(Frame.Text(messageJson))
             } catch (e: Exception) {
-                // Log error or handle it appropriately
+                logger.e(e) { "Failed to send message" }
+                uiEventEmitter.emit(UIEvent.Message("Failed to send message: ${e.message}")) // TODO: handle properly
             }
         }
     }
@@ -270,6 +276,8 @@ class ChatWebSocketClient(
                                 _incomingMessages.emit(message)
                             } catch (e: Exception) {
                                 // Log error or handle invalid messages
+                                logger.e(e) { "Failed to parse incoming message: $text" }
+                                uiEventEmitter.emit(UIEvent.Message("Failed to parse incoming message: ${e.message}")) // TODO: handle properly
                             }
                         }
                         else -> {} // Ignore other frame types

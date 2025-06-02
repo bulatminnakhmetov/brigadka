@@ -1,4 +1,4 @@
 package com.brigadka.app
 
 actual val BASE_URL: String
-    get() = "https://api.brigadka.com/v1/"
+    get() = "http://localhost:8080/api"

@@ -16,8 +16,7 @@ import com.brigadka.app.data.api.models.City
 import com.brigadka.app.data.api.models.StringItem
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.SearchResult
-import com.brigadka.app.di.CreateChatComponent
-import com.brigadka.app.di.CreateProfileViewComponent
+import com.brigadka.app.di.ProfileViewComponentFactory
 import com.brigadka.app.presentation.common.TopBarState
 import com.brigadka.app.presentation.common.UIEvent
 import com.brigadka.app.presentation.common.UIEventEmitter
@@ -45,7 +44,7 @@ class SearchComponent(
     componentContext: ComponentContext,
     private val uiEventEmitter: UIEventEmitter,
     private val profileRepository: ProfileRepository,
-    private val createProfileViewComponent: CreateProfileViewComponent,
+    private val profileViewComponentFactory: ProfileViewComponentFactory,
 ) : ComponentContext by componentContext {
 
     private val _state = MutableStateFlow(SearchState())
@@ -69,7 +68,7 @@ class SearchComponent(
     ): SearchChild = when (config) {
         is SearchConfig.SearchList -> SearchChild.SearchPage
         is SearchConfig.Profile -> SearchChild.Profile(
-            createProfileViewComponent(
+            profileViewComponentFactory.create(
                 componentContext,
                 config.userID,
                 { navigation.pop() }

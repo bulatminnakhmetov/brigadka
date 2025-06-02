@@ -39,7 +39,6 @@ import com.brigadka.app.domain.verification.VerificationManagerImpl
 import com.brigadka.app.presentation.auth.register.RegisterComponent
 import com.brigadka.app.presentation.auth.register.verification.VerificationComponent
 import com.brigadka.app.presentation.common.UIEventBus
-import com.brigadka.app.presentation.common.UIEventEmitter
 import com.brigadka.app.presentation.profile.edit.EditProfileComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -52,32 +51,66 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
 
-typealias CreateProfileViewComponent = (
-    context: ComponentContext,
-    userID: Int?,
-    onBackClick: () -> Unit,
-        ) -> ProfileViewComponent
+interface ProfileViewComponentFactory {
+    fun create(
+        context: ComponentContext,
+        userID: Int? = null,
+        onBackClick: () -> Unit = {},
+        onContactClick: (() -> Unit)? = null
+    ): ProfileViewComponent
+}
 
-typealias CreateChatComponent = (
-    context: ComponentContext,
-    chatID: String,
-    onBackClick: () -> Unit
-        ) -> ChatComponent
+interface ChatListComponentFactory {
+    fun create(context: ComponentContext): ChatListComponent
+}
 
-typealias CreateEditProfileComponent = (
-    context: ComponentContext,
-    onBackClick: () -> Unit,
-) -> EditProfileComponent
+interface MainComponentFactory {
+    fun create(context: ComponentContext): MainComponent
+}
 
-class EditProfileComponentFactory(val create: CreateEditProfileComponent)
+interface ChatComponentFactory {
+    fun create(
+        context: ComponentContext,
+        chatID: String,
+        otherUserID: Int,
+        onBackClick: () -> Unit
+    ): ChatComponent
+}
 
-class VerificationManagerFactory(val create: CreateVerificationManager)
+interface EditProfileComponentFactory {
+    fun create(
+        context: ComponentContext,
+        onBackClick: () -> Unit
+    ): EditProfileComponent
+}
 
-typealias CreateVerificationManager = (scope: CoroutineScope) -> VerificationManager
+interface AuthComponentFactory {
+    fun create(context: ComponentContext): AuthComponent
+}
 
-typealias CreateVerificationComponent = (context: ComponentContext) -> VerificationComponent
+interface SearchComponentFactory {
+    fun create(context: ComponentContext): SearchComponent
+}
 
-typealias CreateRegisterComponent = (context: ComponentContext, onLoginClick: () -> Unit) -> RegisterComponent
+interface OnboardingComponentFactory {
+    fun create(context: ComponentContext, onFinished: () -> Unit): OnboardingComponent
+}
+
+interface RootComponentFactory {
+    fun create(rootContext: ComponentContext): RootComponent
+}
+
+interface VerificationComponentFactory {
+    fun create(context: ComponentContext): VerificationComponent
+}
+
+interface VerificationManagerFactory {
+    fun create(scope: CoroutineScope): VerificationManager
+}
+
+interface RegisterComponentFactory {
+    fun create(context: ComponentContext, onLoginClick: () -> Unit): RegisterComponent
+}
 
 fun initKoin(appModule: Module = module { }, additionalConfig: KoinApplication.() -> Unit = {}): KoinApplication {
     val koinApplication = startKoin {
@@ -97,6 +130,10 @@ val commonModule = module {
     single {
         // Provide a CoroutineScope for the Koin module
         CoroutineScope(Dispatchers.Main + SupervisorJob())
+    }
+
+    single<UIEventBus> {
+        UIEventBus()
     }
 
     single<AuthTokenRepository> { AuthTokenRepositoryImpl(get()) }
@@ -149,30 +186,15 @@ val commonModule = module {
     }
 
     single<VerificationManagerFactory> {
-        VerificationManagerFactory({ scope: CoroutineScope ->
-            VerificationManagerImpl(scope, get(), get(), get<UIEventBus>())
-        })
-    }
-
-    single<CreateVerificationComponent> {
-        { context: ComponentContext ->
-            VerificationComponent(
-                componentContext = context,
-                verificationManagerFactory = get(),
-                sessionManager = get()
-            )
-        }
-    }
-
-    single<CreateRegisterComponent> {
-        { context: ComponentContext, onLoginClick: () -> Unit ->
-            RegisterComponent(
-                componentContext = context,
-                onLoginClick = onLoginClick,
-                createVerificationComponent = get(),
-                sessionManager = get(),
-                userRepository = get(),
-            )
+        object : VerificationManagerFactory {
+            override fun create(scope: CoroutineScope): VerificationManager {
+                return VerificationManagerImpl(
+                    coroutineScope = scope,
+                    apiService = get(),
+                    sessionManager = get(),
+                    uiEventEmitter = get<UIEventBus>()
+                )
+            }
         }
     }
 
@@ -182,7 +204,8 @@ val commonModule = module {
             coroutineScope = get(),
             authTokenRepository = get(),
             httpClient = get(named(HttpClientType.AUTHORIZED)),
-            baseUrl = BASE_URL
+            baseUrl = BASE_URL,
+            uiEventEmitter = get<UIEventBus>()
         )
     }
 
@@ -200,149 +223,197 @@ val commonModule = module {
         )
     }
 
-    single<UIEventBus> {
-        UIEventBus()
-    }
+
 
     // Component factories
-    factory { (context: ComponentContext) ->
-        AuthComponent(
-            componentContext = context,
-            uiEventFlowProvider = get<UIEventBus>(),
-            sessionManager = get(),
-            createRegisterComponent = get(),
-            userRepository = get(),
-        )
-    }
-
-    factory {
-            (context: ComponentContext, onBackClick: () -> Unit) ->
-        EditProfileComponent(
-            componentContext = context,
-            uiEventEmitter = get<UIEventBus>(),
-            profileRepository = get(),
-            mediaRepository = get(),
-            onFinished = onBackClick,
-            onBack = onBackClick,
-        )
-    }
-
-    factory<EditProfileComponentFactory> {
-        EditProfileComponentFactory({ context: ComponentContext,
-          onBackClick: () -> Unit, ->
-            get<EditProfileComponent> { parametersOf(context, onBackClick) }
-        })
-    }
-
-    factory { (
-                  context: ComponentContext,
-                  userID: Int?,
-                  onBackClick: () ->Unit,
-    ) ->
-        ProfileViewComponent(
-            componentContext = context,
-            uiEventEmitter = get<UIEventBus>(),
-            brigadkaApiService = get(),
-            profileRepository = get(),
-            userRepository = get(),
-            sessionManager = get(),
-            userID = userID,
-            onBackClick = onBackClick,
-            createChatComponent = get(),
-            editProfileComponentFactory = get()
-        )
-    }
-
-    factory<CreateProfileViewComponent> {
-        { context: ComponentContext,
-          userID: Int?,
-          onBackClick: () -> Unit, ->
-            get<ProfileViewComponent> { parametersOf(context, userID, onBackClick) }
+    single<AuthComponentFactory> {
+        object : AuthComponentFactory {
+            override fun create(context: ComponentContext): AuthComponent {
+                return AuthComponent(
+                    componentContext = context,
+                    uiEventFlowProvider = get<UIEventBus>(),
+                    sessionManager = get(),
+                    registerComponentFactory = get(),
+                    userRepository = get(),
+                )
+            }
         }
     }
 
-    factory { (context: ComponentContext) ->
-        SearchComponent(
-            componentContext = context,
-            uiEventEmitter = get<UIEventBus>(),
-            profileRepository = get(),
-            createProfileViewComponent = get(),
-        )
+    factory<EditProfileComponentFactory> {
+        object: EditProfileComponentFactory {
+            override fun create(
+                context: ComponentContext,
+                onBackClick: () -> Unit
+            ): EditProfileComponent {
+                return EditProfileComponent(
+                    componentContext = context,
+                    uiEventEmitter = get<UIEventBus>(),
+                    profileRepository = get(),
+                    mediaRepository = get(),
+                    onFinished = onBackClick,
+                    onBack = onBackClick,
+                )
+            }
+        }
     }
 
-    factory { (context: ComponentContext, onChatSelected: (String) -> Unit) ->
-        ChatListComponent(
-            componentContext = context,
-            uiEventEmitter = get<UIEventBus>(),
-            api = get(),
-            profileRepository = get(),
-            webSocketClient = get(),
-            userRepository = get(),
-            onChatSelected = onChatSelected
-        )
+    single<ProfileViewComponentFactory> {
+        object: ProfileViewComponentFactory {
+            override fun create(
+                context: ComponentContext,
+                userID: Int?,
+                onBackClick: () -> Unit,
+                onContactClick: (() -> Unit)?
+            ): ProfileViewComponent {
+                return ProfileViewComponent(
+                    componentContext = context,
+                    uiEventEmitter = get<UIEventBus>(),
+                    brigadkaApiService = get(),
+                    profileRepository = get(),
+                    userRepository = get(),
+                    sessionManager = get(),
+                    userID = userID,
+                    onBackClick = onBackClick,
+                    chatComponentFactory = get(),
+                    editProfileComponentFactory = get(),
+                    onContactClick = onContactClick,
+                )
+            }
+        }
     }
 
-    factory { (context: ComponentContext, chatID: String, onBackClick: () -> Unit) ->
-        ChatComponent(
-            componentContext = context,
-            uiEventEmitter = get<UIEventBus>(),
-            userRepository = get(),
-            api = get(),
-            webSocketClient = get(),
-            chatID = chatID,
-            onBackClick = onBackClick
-        )
+    single<VerificationComponentFactory> {
+        object : VerificationComponentFactory {
+            override fun create(context: ComponentContext): VerificationComponent {
+                return VerificationComponent(
+                    componentContext = context,
+                    verificationManagerFactory = get(),
+                    sessionManager = get()
+                )
+            }
+        }
     }
 
-    factory { (mainContext: ComponentContext) ->
-        MainComponent(
-            componentContext = mainContext,
-            uiEventFlowProvider = get<UIEventBus>(),
-            createProfileViewComponent = get(),
-            createSearchComponent = { context ->
-                get<SearchComponent> { parametersOf(context) }
-            },
-            createChatListComponent = { context, onChatSelected ->
-                get<ChatListComponent> { parametersOf(context, onChatSelected) }
-            },
-            createChatComponent = { context, chatID, onBackClick ->
-                get<ChatComponent> { parametersOf(context, chatID, onBackClick) }
-            },
-        )
+    single<RegisterComponentFactory> {
+        object : RegisterComponentFactory {
+            override fun create(context: ComponentContext, onLoginClick: () -> Unit): RegisterComponent {
+                return RegisterComponent(
+                    componentContext = context,
+                    onLoginClick = onLoginClick,
+                    verificationComponentFactory = get(),
+                    sessionManager = get(),
+                    userRepository = get(),
+                )
+            }
+        }
+    }
+
+    single<SearchComponentFactory> {
+        object : SearchComponentFactory {
+            override fun create(context: ComponentContext): SearchComponent {
+                return SearchComponent(
+                    componentContext = context,
+                    uiEventEmitter = get<UIEventBus>(),
+                    profileRepository = get(),
+                    profileViewComponentFactory = get()
+                )
+            }
+        }
+    }
+
+    // Replace ChatComponentFactory class with interface
+    single<ChatComponentFactory> {
+        object : ChatComponentFactory {
+            override fun create(
+                context: ComponentContext,
+                chatID: String,
+                otherUserID: Int,
+                onBackClick: () -> Unit
+            ): ChatComponent {
+                return ChatComponent(
+                    componentContext = context,
+                    uiEventEmitter = get<UIEventBus>(),
+                    userRepository = get(),
+                    profileRepository = get(),
+                    api = get(),
+                    webSocketClient = get(),
+                    profileViewComponentFactory = get(),
+                    chatID = chatID,
+                    otherUserID = otherUserID,
+                    onBackClick = onBackClick
+                )
+            }
+        }
+    }
+
+    single<OnboardingComponentFactory> {
+        object : OnboardingComponentFactory {
+            override fun create(context: ComponentContext, onFinished: () -> Unit): OnboardingComponent {
+                return OnboardingComponent(
+                    componentContext = context,
+                    mediaRepository = get(),
+                    profileRepository = get(),
+                    userRepository = get(),
+                    onFinished = onFinished
+                )
+            }
+        }
+    }
+
+    single<ChatListComponentFactory> {
+        object : ChatListComponentFactory {
+            override fun create(context: ComponentContext): ChatListComponent {
+                return ChatListComponent(
+                    componentContext = context,
+                    uiEventEmitter = get<UIEventBus>(),
+                    userRepository = get(),
+                    webSocketClient = get(),
+                    profileRepository = get(),
+                    api = get(),
+                    chatComponentFactory = get()
+                )
+            }
+        }
+    }
+
+    single<MainComponentFactory> {
+        object : MainComponentFactory {
+            override fun create(context: ComponentContext): MainComponent {
+                return MainComponent(
+                    componentContext = context,
+                    userRepository = get(),
+                    chatListComponentFactory = get(),
+                    profileViewComponentFactory = get(),
+                    uiEventFlowProvider = get<UIEventBus>(),
+                    searchComponentFactory = get()
+                )
+            }
+        }
+    }
+
+    single<RootComponentFactory> {
+        object : RootComponentFactory {
+            override fun create(rootContext: ComponentContext): RootComponent {
+                return RootComponent(
+                    componentContext = rootContext,
+                    userRepository = get(),
+                    profileRepository = get(),
+                    createAuthComponent = { context ->
+                        get<AuthComponentFactory>().create(context)
+                    },
+                    createOnboardingComponent = { context, onFinished ->
+                        get<OnboardingComponentFactory>().create(context, onFinished)
+                    },
+                    mainComponentFactory = get()
+                )
+            }
+        }
     }
 
     // Repositories
     single<ProfileRepository> { ProfileRepositoryImpl(get(), get(), get()) }
     single<MediaRepository> { MediaRepositoryImpl(get()) }
-
-    // Component factories
-    factory { (context: ComponentContext, onFinished: () -> Unit) ->
-        OnboardingComponent(
-            componentContext = context,
-            mediaRepository = get(),
-            profileRepository = get(),
-            userRepository = get(),
-            onFinished = onFinished
-        )
-    }
-
-    // Root component factory
-    factory { (rootContext: ComponentContext) ->
-        RootComponent(
-            componentContext = rootContext,
-            userRepository = get(),
-            profileRepository = get(),
-            createAuthComponent = { context ->
-                get<AuthComponent> { parametersOf(context) }
-            },
-            createOnboardingComponent = { context, onFinished ->
-                get<OnboardingComponent> { parametersOf(context, onFinished) }
-            },
-            createMainComponent = { context ->
-                get<MainComponent> { parametersOf(context) }
-            }
-        )
-    }
 }
 
 enum class HttpClientType {

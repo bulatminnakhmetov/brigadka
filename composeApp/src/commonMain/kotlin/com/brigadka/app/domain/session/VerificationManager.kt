@@ -89,7 +89,7 @@ class VerificationManagerImpl(
                     try {
                         val status = apiService.getVerificationStatus()
                         if (status.verified) {
-                            uiEventEmitter.emit(UIEvent.Message("Успех! Теперь вы можете войти!"))
+                            uiEventEmitter.emit(UIEvent.Message("\uD83E\uDD73  Успех! Теперь вы можете войти!"))
                             stop()
                             sessionManager.logout()
                             break

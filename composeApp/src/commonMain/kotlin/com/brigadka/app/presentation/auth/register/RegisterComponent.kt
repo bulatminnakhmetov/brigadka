@@ -10,7 +10,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.lifecycle.doOnDestroy
 import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.repository.UserRepository
-import com.brigadka.app.di.CreateVerificationComponent
+import com.brigadka.app.di.VerificationComponentFactory
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.presentation.auth.login.LoginComponent
 import com.brigadka.app.presentation.auth.register.verification.VerificationComponent
@@ -30,7 +30,7 @@ class RegisterComponent(
     val onLoginClick: () -> Unit,
     private val sessionManager: SessionManager,
     private val userRepository: UserRepository,
-    private val createVerificationComponent: CreateVerificationComponent,
+    private val verificationComponentFactory: VerificationComponentFactory,
 ) : ComponentContext by componentContext {
 
     private val scope = coroutineScope()
@@ -135,7 +135,7 @@ class RegisterComponent(
         componentContext: ComponentContext
     ): Child = when (configuration) {
         is Configuration.Verification -> Child.Verification(
-            createVerificationComponent(componentContext)
+            verificationComponentFactory.create(componentContext)
         )
         is Configuration.Register -> Child.Register
     }

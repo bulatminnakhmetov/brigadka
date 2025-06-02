@@ -1,5 +1,7 @@
 package com.brigadka.app.data.api.models
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -17,7 +19,7 @@ data class ChatMessage(
     val chat_id: String,
     val sender_id: Int,
     val content: String,
-    val sent_at: String?
+    val sent_at: Instant?
 )
 
 @Serializable

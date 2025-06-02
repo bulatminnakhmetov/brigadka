@@ -9,89 +9,72 @@ import platform.AVFoundation.AVURLAsset
 import platform.AVFoundation.AVAssetExportSession
 import platform.AVFoundation.AVAssetExportSessionStatusCompleted
 import platform.CoreGraphics.CGSizeMake
+import platform.darwin.DISPATCH_TIME_FOREVER
+import platform.darwin.dispatch_semaphore_create
+import platform.darwin.dispatch_semaphore_signal
+import platform.darwin.dispatch_semaphore_wait
+
 
 @OptIn(ExperimentalForeignApi::class)
 actual fun convertVideoToMp4(fileBytes: ByteArray, fileName: String): ByteArray {
-    // Skip conversion if already MP4
-    if (fileName.endsWith(".mp4", ignoreCase = true)) {
-        return fileBytes
-    }
+    if (fileName.lowercase().endsWith(".mp4")) return fileBytes   // already OK
 
-    // Create temporary files
-    val inputFilePath = NSTemporaryDirectory() + "/input_${NSUUID.UUID().UUIDString()}.$fileName"
-    val outputFilePath = NSTemporaryDirectory() + "/output_${NSUUID.UUID().UUIDString()}.mp4"
+    // ─── 1. temp files ─────────────────────────────────────────
+    val tmpDir    = NSTemporaryDirectory()
+    val inputUrl  = NSURL.fileURLWithPath("$tmpDir/in_${NSUUID.UUID().UUIDString()}.$fileName")
+    val outputUrl = NSURL.fileURLWithPath("$tmpDir/out_${NSUUID.UUID().UUIDString()}.mp4")
 
-    val inputFileURL = NSURL.fileURLWithPath(inputFilePath)
-    val outputFileURL = NSURL.fileURLWithPath(outputFilePath)
-
-    // Save input bytes to file
-    val nsData = fileBytes.usePinned { pinned ->
+    val ok = fileBytes.usePinned { pinned ->
         NSData.dataWithBytes(pinned.addressOf(0), fileBytes.size.toULong())
-    }
+    }.writeToURL(inputUrl, true)
 
-    if (!nsData.writeToURL(inputFileURL, true)) {
-        return fileBytes // Return original if we can't save to temp file
-    }
+    if (!ok) return fileBytes
 
     try {
-        // Create asset from input file
-        val asset = AVURLAsset.URLAssetWithURL(inputFileURL, null)
+        val asset        = AVURLAsset.URLAssetWithURL(inputUrl, null)
+        val preset       = AVAssetExportPreset1280x720      // 720 p H.264 in an .mp4 container
+        val export       = AVAssetExportSession.exportSessionWithAsset(asset, preset) ?: return fileBytes
 
-        // Create export session
-        val exportSession = AVAssetExportSession.exportSessionWithAsset(
-            asset,
-            AVAssetExportPresetHEVC1920x1080 // Use H.264 preset closest to 720p
-        )
+        export.outputURL                   = outputUrl
+        export.outputFileType              = AVFileTypeMPEG4
+        export.shouldOptimizeForNetworkUse = true
 
-        if (exportSession == null) {
-            return fileBytes
+        // ─── 2. Custom video composition (optional) ────────────
+//        run {
+//            val track = asset.tracksWithMediaType(AVMediaTypeVideo).firstOrNull() ?: return@run
+//            val instruction = AVMutableVideoCompositionInstruction.videoCompositionInstruction().apply {
+//                timeRange = CMTimeRangeMake(kCMTimeZero, asset.duration)
+//            }
+//            val layer = AVMutableVideoCompositionLayerInstruction.videoCompositionLayerInstructionWithAssetTrack(track).apply {
+//                // Preserve original orientation / add your own transforms if needed
+//                setTransform(track.preferredTransform, kCMTimeZero)
+//            }
+//            instruction.setLayerInstructions(listOf(layer))
+//            val comp = AVMutableVideoComposition.videoComposition().apply {
+//                renderSize    = CGSizeMake(1280.0, 720.0)
+//                frameDuration = CMTimeMake(1, 30)   // 30 fps
+//                instructions  = listOf(instruction)
+//            }
+//            export.videoComposition = comp
+//        }
+
+        // ─── 3. Run export synchronously (semaphore) ───────────
+        val sema = dispatch_semaphore_create(0)
+        export.exportAsynchronouslyWithCompletionHandler { dispatch_semaphore_signal(sema) }
+        dispatch_semaphore_wait(sema, DISPATCH_TIME_FOREVER)
+
+        // ─── 4. Success? ───────────────────────────────────────
+        if (export.status == AVAssetExportSessionStatusCompleted) {
+            val data = NSData.dataWithContentsOfURL(outputUrl) ?: return fileBytes
+            val res  = ByteArray(data.length.toInt())
+            res.usePinned { data.getBytes(it.addressOf(0), data.length) }
+            return res
         }
-
-        // Configure export
-        exportSession.outputURL = outputFileURL
-        exportSession.outputFileType = AVFileTypeMPEG4
-        exportSession.shouldOptimizeForNetworkUse = true
-
-        // Video composition to resize
-        val videoComposition = AVMutableVideoComposition.videoComposition().apply {
-            setRenderSize(CGSizeMake(1280.0, 720.0)) // 720p
-            setFrameDuration(CMTimeMake(1, 30)) // 30fps
-        }
-
-        exportSession.videoComposition = videoComposition
-
-        // Wait for export to complete
-        val semaphore = NSCondition()
-        exportSession.exportAsynchronouslyWithCompletionHandler {
-            semaphore.signal()
-        }
-
-        semaphore.lock()
-        semaphore.wait()
-        semaphore.unlock()
-
-        // Check if export was successful
-        if (exportSession.status == AVAssetExportSessionStatusCompleted) {
-            // Read the converted file
-            val outputData = NSData.dataWithContentsOfURL(outputFileURL)
-                ?: return fileBytes
-
-            val length = outputData.length.toInt()
-            val result = ByteArray(length)
-
-            result.usePinned { pinned ->
-                outputData.getBytes(pinned.addressOf(0), length.toULong())
-            }
-
-            return result
-        } else {
-            return fileBytes // Return original on error
-        }
-    } catch (e: Exception) {
+        return fileBytes          // fall back on error
+    } catch (_: Exception) {
         return fileBytes
     } finally {
-        // Clean up temp files
-        NSFileManager.defaultManager.removeItemAtURL(inputFileURL, null)
-        NSFileManager.defaultManager.removeItemAtURL(outputFileURL, null)
+        NSFileManager.defaultManager.removeItemAtURL(inputUrl, null)
+        NSFileManager.defaultManager.removeItemAtURL(outputUrl, null)
     }
 }

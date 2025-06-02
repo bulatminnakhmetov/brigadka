@@ -2,7 +2,6 @@ package com.brigadka.app.di
 
 import com.brigadka.app.domain.notification.PushNotificationService
 import com.brigadka.app.data.notification.PushNotificationServiceIOS
-import com.brigadka.app.data.api.push.DeviceIdProvider
 import com.brigadka.app.data.repository.DeviceIdProviderIOS
 import com.brigadka.app.domain.push.DeviceIdProvider
 import com.russhwolf.settings.NSUserDefaultsSettings

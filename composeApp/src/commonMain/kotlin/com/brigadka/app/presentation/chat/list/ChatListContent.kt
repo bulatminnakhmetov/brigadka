@@ -15,25 +15,47 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.brigadka.app.presentation.chat.conversation.ChatContent
 import com.brigadka.app.presentation.profile.common.Avatar
 
 @Composable
 fun ChatListContent(component: ChatListComponent) {
-    val uiState by component.uiState.collectAsState()
-    LaunchedEffect(Unit) {
-        component.showTopBar()
+    val childStack by component.childStack.subscribeAsState()
+
+    Children(
+        stack = childStack,
+        animation = stackAnimation(fade() + com.arkivanov.decompose.extensions.compose.stack.animation.scale())
+    ) { child ->
+        when (val instance = child.instance) {
+            is ChatListComponent.Child.ChatList -> {
+                val uiState by component.chatListState.collectAsState()
+                LaunchedEffect(Unit) {
+                    component.showTopBar()
+                }
+                ChatListContent(
+                    chatListState = uiState,
+                    onChatClick = component::onChatClick,
+                    onError = component::onError
+                )
+            }
+            is ChatListComponent.Child.Chat -> {
+                ChatContent(instance.component)
+            }
+        }
     }
-    ChatListContent(
-        uiState = uiState,
-        onChatClick = component::onChatSelected,
-        onError = component::onError
-    )
+
+
 }
 
 @Composable
 fun ChatListContentPreview() {
     ChatListContent(
-        uiState = ChatListComponent.UiState(
+        chatListState = ChatListComponent.ChatListState(
             isLoading = false,
             chats = listOf(
                 ChatListComponent.ChatPreview(
@@ -54,15 +76,15 @@ fun ChatListContentPreview() {
                 )
             )
         ),
-        onChatClick = {},
+        onChatClick = {_, _ -> },
         onError = {}
     )
 }
 
 @Composable
 fun ChatListContent(
-    uiState: ChatListComponent.UiState,
-    onChatClick: (String) -> Unit,
+    chatListState: ChatListComponent.ChatListState,
+    onChatClick: (String, Int?) -> Unit,
     onError: (String) -> Unit
 ) {
     Surface(
@@ -70,11 +92,11 @@ fun ChatListContent(
         color = MaterialTheme.colorScheme.background
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            if (uiState.isLoading) {
+            if (chatListState.isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.align(Alignment.Center)
                 )
-            } else if (uiState.chats.isEmpty()) {
+            } else if (chatListState.chats.isEmpty()) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -98,10 +120,10 @@ fun ChatListContent(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(vertical = 8.dp)
                 ) {
-                    items(uiState.chats) { chat ->
+                    items(chatListState.chats) { chat ->
                         ChatItem(
                             chat = chat,
-                            onClick = { onChatClick(chat.chatId) },
+                            onClick = { onChatClick(chat.chatId, chat.userID) },
                             onError = onError
                         )
                         HorizontalDivider()

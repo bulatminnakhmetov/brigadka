@@ -11,6 +11,7 @@ import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.data.repository.ProfileRepository
 import com.brigadka.app.data.repository.UserRepository
+import com.brigadka.app.di.MainComponentFactory
 import com.brigadka.app.domain.session.LoggingState
 import com.brigadka.app.presentation.auth.AuthComponent
 import com.brigadka.app.presentation.onboarding.OnboardingComponent
@@ -26,7 +27,7 @@ class RootComponent(
     private val profileRepository: ProfileRepository,
     private val createOnboardingComponent: (ComponentContext, () -> Unit) -> OnboardingComponent,
     private val createAuthComponent: (ComponentContext) -> AuthComponent,
-    private val createMainComponent: (ComponentContext) -> MainComponent,
+    private val mainComponentFactory: MainComponentFactory,
 ) : ComponentContext by componentContext {
 
     private val navigation = StackNavigation<Configuration>()
@@ -77,7 +78,7 @@ class RootComponent(
             createAuthComponent(componentContext)
         )
         is Configuration.Main -> Child.Main(
-            createMainComponent(componentContext)
+            mainComponentFactory.create(componentContext)
         )
         is Configuration.Onboarding -> Child.Onboarding(
             createOnboardingComponent(

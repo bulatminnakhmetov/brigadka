@@ -12,7 +12,7 @@ import java.io.InputStream
 
 @Composable
 actual fun rememberFilePickerLauncher(
-    fileType: String,
+    fileType: FileType,
     onFilePicked: (ByteArray, String) -> Unit,
     onError: (String) -> Unit
 ): FilePickerLauncher {
@@ -35,7 +35,13 @@ actual fun rememberFilePickerLauncher(
     return remember {
         object : FilePickerLauncher {
             override fun launch() {
-                launcher.launch(fileType)
+                if (fileType == FileType.VIDEO) {
+                    launcher.launch("video/*")
+                } else if (fileType == FileType.IMAGE) {
+                    launcher.launch("image/*")
+                } else {
+                    onError("Unsupported file type: $fileType")
+                }
             }
         }
     }

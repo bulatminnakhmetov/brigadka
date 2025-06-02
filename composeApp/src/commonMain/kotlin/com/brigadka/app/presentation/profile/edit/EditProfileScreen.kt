@@ -41,6 +41,7 @@ import com.brigadka.app.data.api.models.City
 import com.brigadka.app.data.api.models.MediaItem
 import com.brigadka.app.data.api.models.StringItem
 import com.brigadka.app.presentation.LocalStrings
+import com.brigadka.app.presentation.common.FileType
 import com.brigadka.app.presentation.common.compose.ChipsPicker
 import com.brigadka.app.presentation.common.compose.CityPicker
 import com.brigadka.app.presentation.common.compose.DatePickerField
@@ -50,6 +51,7 @@ import com.brigadka.app.presentation.profile.common.Avatar
 import com.brigadka.app.presentation.profile.common.LoadableValue
 import com.brigadka.app.presentation.profile.common.ProfileState
 import com.brigadka.app.presentation.profile.common.VideoSection
+import io.kamel.core.utils.File
 import kotlinx.datetime.LocalDate
 
 @Composable
@@ -113,7 +115,7 @@ fun EditProfileScreen(
     val scope = rememberCoroutineScope()
 
     val avatarPickerLauncher = rememberFilePickerLauncher(
-        fileType = "image/*",
+        fileType = FileType.IMAGE,
         onFilePicked = { bytes, fileName ->
             uploadAvatar(bytes, fileName)
         },
@@ -121,7 +123,7 @@ fun EditProfileScreen(
     )
 
     val videoPickerLauncher = rememberFilePickerLauncher(
-        fileType = "video/*",
+        fileType = FileType.VIDEO,
         onFilePicked = { bytes, fileName ->
             uploadVideo(bytes, fileName)
         },

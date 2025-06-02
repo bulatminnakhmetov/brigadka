@@ -6,9 +6,14 @@ interface FilePickerLauncher {
     fun launch()
 }
 
+enum class FileType {
+    IMAGE,
+    VIDEO
+}
+
 @Composable
 expect fun rememberFilePickerLauncher(
-    fileType: String,
+    fileType: FileType,
     onFilePicked: (ByteArray, String) -> Unit,
     onError: (String) -> Unit
 ): FilePickerLauncher

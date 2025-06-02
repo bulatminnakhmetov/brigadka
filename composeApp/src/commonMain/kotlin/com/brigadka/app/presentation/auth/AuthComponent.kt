@@ -11,7 +11,7 @@ import com.arkivanov.decompose.router.stack.replaceAll
 import com.arkivanov.decompose.value.Value
 import com.brigadka.app.common.coroutineScope
 import com.brigadka.app.data.repository.UserRepository
-import com.brigadka.app.di.CreateRegisterComponent
+import com.brigadka.app.di.RegisterComponentFactory
 import com.brigadka.app.domain.session.SessionManager
 import com.brigadka.app.presentation.auth.login.LoginComponent
 import com.brigadka.app.presentation.auth.register.RegisterComponent
@@ -26,7 +26,7 @@ class AuthComponent(
     private val uiEventFlowProvider: UIEventFlowProvider,
     private val sessionManager: SessionManager,
     private val userRepository: UserRepository,
-    private val createRegisterComponent: CreateRegisterComponent,
+    private val registerComponentFactory: RegisterComponentFactory,
 ) : ComponentContext by componentContext, UIEventFlowProvider by uiEventFlowProvider {
 
     private val scope = coroutineScope()
@@ -67,7 +67,7 @@ class AuthComponent(
             )
         )
         is Configuration.Register -> Child.Register(
-            createRegisterComponent(
+            registerComponentFactory.create(
                 componentContext, { navigation.replaceAll(Configuration.Login) }
             )
         )

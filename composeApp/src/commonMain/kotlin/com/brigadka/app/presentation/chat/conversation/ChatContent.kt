@@ -1,6 +1,8 @@
 package com.brigadka.app.presentation.chat.conversation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -10,46 +12,86 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Send
-import androidx.compose.material.icons.automirrored.outlined.Send
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import com.brigadka.app.presentation.common.TopBarState
+import com.arkivanov.decompose.extensions.compose.stack.Children
+import com.arkivanov.decompose.extensions.compose.stack.animation.fade
+import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
+import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.brigadka.app.common.formatInstantTo24HourTime
+import com.brigadka.app.presentation.profile.common.Avatar
+import com.brigadka.app.presentation.profile.edit.EditProfileScreen
+import com.brigadka.app.presentation.profile.view.ProfileViewComponent
+import com.brigadka.app.presentation.profile.view.ProfileViewContent
+import com.brigadka.app.presentation.profile.view.ProfileViewScreen
 import kotlinx.coroutines.launch
+import kotlinx.datetime.Instant
 
 @Composable
 fun ChatContent(component: ChatComponent) {
-    val uiState by component.uiState.collectAsState()
-    LaunchedEffect(Unit) {
-        component.showTopBar()
+    val childStack by component.childStack.subscribeAsState()
+
+    Children(
+        stack = childStack,
+        animation = stackAnimation(fade() + com.arkivanov.decompose.extensions.compose.stack.animation.scale())
+    ) { child ->
+        when (val instance = child.instance) {
+            is ChatComponent.Child.Chat -> {
+                val uiState by component.chatState.collectAsState()
+                LaunchedEffect(Unit) {
+                    component.showTopBar()
+                }
+                ChatContent(uiState = uiState, onBackClick = component::onBack, onSendMessage = component::sendMessage)
+            }
+            is ChatComponent.Child.Profile -> {
+                ProfileViewContent(instance.component)
+            }
+        }
     }
-    ChatContent(uiState = uiState, onBackClick = component::onBack, onSendMessage = component::sendMessage)
 }
 
 @Composable
 fun ChatContentPreview() {
-    val uiState = ChatComponent.ChatUiState(
+    val uiState = ChatComponent.ChatState(
         chatName = "Jack Sparrow",
         isOnline = true,
         messages = listOf(
             ChatComponent.Message(
                 message_id = "1",
                 sender_id = 1,
-                content = "Hello!",
-                sent_at = "2023-10-01T12:00:00Z"
+                content = "привет) увидел у тебя видео с выступлением — очень круто сыграл\n" +
+                        "сцена с преподавателем в лаборатории прям зашла \uD83D\uDD25",
+                sent_at = Instant.parse("2023-10-01T12:00:00Z")
             ),
             ChatComponent.Message(
                 message_id = "2",
                 sender_id = 2,
-                content = "Hi there!",
-                sent_at = "2023-10-01T12:01:00Z"
-            )
+                content = "о, спасибо)) это мы на ночной импровке играли, вообще без подготовки\n" +
+                        "рад что понравилось",
+                sent_at = Instant.parse("2023-10-01T12:01:00Z")
+            ),
+            ChatComponent.Message(
+                message_id = "1",
+                sender_id = 1,
+                content = "ну прям классно было\n" +
+                        "я сейчас собираю команду под длинную форму, типа сторителлинга с персонажами и отношениями\n" +
+                        "не думал попробовать что-то такое?",
+                sent_at = Instant.parse("2023-10-01T12:03:00Z")
+            ),
+            ChatComponent.Message(
+                message_id = "2",
+                sender_id = 2,
+                content = "слушай да, давно хотелось пойти в сторону чего-то посерьёзнее\n" +
+                        "шортформы кайф конечно, но хочется поглубже копнуть\n" +
+                        "что за формат у вас?",
+                sent_at = Instant.parse("2023-10-01T12:04:00Z")
+            ),
+
         ),
         currentUserId = 1,
         isConnected = true
@@ -58,7 +100,7 @@ fun ChatContentPreview() {
     ChatContent(uiState, onBackClick = {}, onSendMessage = {})
 }
 @Composable
-fun ChatContent(uiState: ChatComponent.ChatUiState, onBackClick: () -> Unit, onSendMessage: suspend (String) -> Unit) {
+fun ChatContent(uiState: ChatComponent.ChatState, onBackClick: () -> Unit, onSendMessage: suspend (String) -> Unit) {
     val lazyListState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     var messageText by remember { mutableStateOf("") }
@@ -142,12 +184,12 @@ private fun MessageBubble(
                 bottomEnd = if (isFromCurrentUser) 0.dp else 16.dp
             ),
             color = if (isFromCurrentUser)
-                MaterialTheme.colorScheme.primaryContainer
+                MaterialTheme.colorScheme.surface
             else
                 MaterialTheme.colorScheme.surfaceVariant
         ) {
             Column(
-                modifier = Modifier.padding(12.dp)
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
             ) {
                 Text(
                     text = message.content,
@@ -164,8 +206,7 @@ private fun MessageBubble(
 
         Text(
             text = message.sent_at?.let {
-                // You might want to format the timestamp more nicely
-                it.substringBefore("T") + " " + it.substringAfter("T").substringBefore(".")
+                formatInstantTo24HourTime(it)
             } ?: "Sending...",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -236,40 +277,79 @@ private fun ConnectionStatusBanner() {
     }
 }
 
+
+@Composable
+fun ChatTopBarOnlinePreview() {
+    ChatTopBar(
+        state = ChatTopBarState(
+            chatName = "Jack Sparrow",
+            isOnline = true,
+            onTitleClick = {},
+            onBackClick = {}
+        )
+    )
+}
+
+@Composable
+fun ChatTopBarOfflinePreview() {
+    ChatTopBar(
+        state = ChatTopBarState(
+            chatName = "Jack Sparrow",
+            isOnline = false,
+            onTitleClick = {},
+            onBackClick = {}
+        )
+    )
+}
+
 // Add to ChatContent.kt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ChatTopBar(state: ChatTopBarState) {
     CenterAlignedTopAppBar(
         title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = state.chatName,
-                    style = MaterialTheme.typography.titleMedium
-                )
-                if (state.isOnline) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(
-                                    color = if (state.isOnline)
-                                        MaterialTheme.colorScheme.primary
-                                    else
-                                        MaterialTheme.colorScheme.outline,
-                                    shape = CircleShape
-                                )
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (state.isOnline) "Online" else "Offline",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+            Row(verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxSize().clickable {
+                    state.onTitleClick()
+                }
+            ) {
+                Avatar(mediaItem = state.image, modifier = Modifier.padding(8.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = state.chatName,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    // TODO: implement online/offline status
+//                    Row(
+//                        verticalAlignment = Alignment.CenterVertically,
+//                        horizontalArrangement = Arrangement.Center
+//                    ) {
+//                        Box(
+//                            modifier = Modifier
+//                                .size(8.dp)
+//                                .background(
+//                                    color = if (state.isOnline)
+//                                        MaterialTheme.colorScheme.primary
+//                                    else
+//                                        Color.Transparent,
+//                                    shape = CircleShape
+//                                ).border(
+//                                    width = 1.dp,
+//                                    color = if (state.isOnline)
+//                                        Color.Transparent
+//                                    else
+//                                        MaterialTheme.colorScheme.onSurfaceVariant,
+//                                    shape = CircleShape
+//                                )
+//                        )
+//                        Spacer(modifier = Modifier.width(4.dp))
+//                        Text(
+//                            text = if (state.isOnline) "Online" else "Offline",
+//                            style = MaterialTheme.typography.bodySmall,
+//                            color = MaterialTheme.colorScheme.onSurfaceVariant
+//                        )
+//                    }
                 }
             }
         },

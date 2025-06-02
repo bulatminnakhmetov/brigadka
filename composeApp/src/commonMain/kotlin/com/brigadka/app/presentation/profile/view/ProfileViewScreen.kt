@@ -60,7 +60,7 @@ fun ProfileViewContent(component: ProfileViewComponent) {
 }
 
 @Composable
-fun ProfileViewScreen(component: ProfileViewComponent){
+private fun ProfileViewScreen(component: ProfileViewComponent){
     val profileViewState by component.profileView.subscribeAsState()
 
     LaunchedEffect(Unit) {
@@ -71,10 +71,8 @@ fun ProfileViewScreen(component: ProfileViewComponent){
         profileView = profileViewState.value,
         isLoading = profileViewState.isLoading,
         onError = { /* Handle error */ },
-        onEditProfile = component::onEditProfile,
         onContactClick = component::onContactClick,
         isContactable = component.isContactable,
-        isEditable = component.isEditable
     )
 }
 
@@ -83,9 +81,7 @@ fun ProfileViewScreen(
     profileView: ProfileView?,
     isLoading: Boolean,
     onError: (String) -> Unit,
-    onEditProfile: () -> Unit,
     onContactClick: () -> Unit,
-    isEditable: Boolean,
     isContactable: Boolean,
 ) {
     val scrollState = rememberScrollState()
@@ -335,10 +331,8 @@ fun HomeProfileViewScreenPreview() {
         profileView,
         isLoading = false,
         onError = {},
-        onEditProfile = {},
         onContactClick = {},
         isContactable = false,
-        isEditable = true
     )
 }
 
@@ -371,8 +365,6 @@ fun OtherProfileViewScreenPreview() {
         isLoading = false,
         onError = {},
         onContactClick = {},
-        onEditProfile = {},
-        isContactable = true,
-        isEditable = false
+        isContactable = true
     )
 }

@@ -1,17 +1,16 @@
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.DelicateDecomposeApi
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.router.stack.StackNavigation
 import com.arkivanov.decompose.router.stack.bringToFront
 import com.arkivanov.decompose.router.stack.childStack
-import com.arkivanov.decompose.router.stack.navigate
 import com.arkivanov.decompose.router.stack.pop
-import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.router.stack.pushNew
 import com.arkivanov.decompose.value.Value
-import com.brigadka.app.data.api.BrigadkaApiService
-import com.brigadka.app.di.CreateChatComponent
-import com.brigadka.app.di.CreateProfileViewComponent
+import com.brigadka.app.data.repository.UserRepository
+import com.brigadka.app.di.ChatComponentFactory
+import com.brigadka.app.di.ChatListComponentFactory
+import com.brigadka.app.di.ProfileViewComponentFactory
+import com.brigadka.app.di.SearchComponentFactory
 import com.brigadka.app.presentation.chat.conversation.ChatComponent
 import com.brigadka.app.presentation.chat.list.ChatListComponent
 import com.brigadka.app.presentation.common.UIEventFlowProvider
@@ -22,16 +21,16 @@ import kotlinx.serialization.Serializable
 class MainComponent(
     componentContext: ComponentContext,
     uiEventFlowProvider: UIEventFlowProvider,
-    private val createProfileViewComponent: CreateProfileViewComponent,
-    private val createSearchComponent: (ComponentContext) -> SearchComponent,
-    private val createChatListComponent: (ComponentContext, (String) -> Unit) -> ChatListComponent,
-    private val createChatComponent: CreateChatComponent
+    private val userRepository: UserRepository,
+    private val profileViewComponentFactory: ProfileViewComponentFactory,
+    private val searchComponentFactory: SearchComponentFactory,
+    private val chatListComponentFactory: ChatListComponentFactory,
 ) : ComponentContext by componentContext, UIEventFlowProvider by uiEventFlowProvider {
 
     private val mainNavigation = StackNavigation<Config>()
     private val mainStack = childStack(
         source = mainNavigation,
-        initialConfiguration = Config.Profile(),
+        initialConfiguration = Config.Search,
         serializer = Config.serializer(),
         handleBackButton = true,
         childFactory = ::createChild
@@ -44,23 +43,16 @@ class MainComponent(
         componentContext: ComponentContext
     ): Child = when (configuration) {
         is Config.Profile -> Child.Profile(
-            createProfileViewComponent(componentContext, configuration.userID,
-                { mainNavigation.pop() }
+            profileViewComponentFactory.create(
+                context = componentContext,
+                userID = configuration.userID,
             )
         )
         is Config.Search -> Child.Search(
-            createSearchComponent(componentContext)
+            searchComponentFactory.create(componentContext)
         )
         is Config.ChatList -> Child.ChatList(
-            createChatListComponent(
-                componentContext,
-                { chatId -> navigateToChat(chatId) }
-            )
-        )
-        is Config.Chat -> Child.Chat(
-            createChatComponent(componentContext, configuration.chatId, {
-                mainNavigation.pop()
-            })
+            chatListComponentFactory.create(componentContext)
         )
         else -> throw IllegalArgumentException("Unknown configuration: $configuration")
     }
@@ -83,8 +75,8 @@ class MainComponent(
         }
     }
 
-    fun navigateToProfile(userID: Int? = null) {
-        navigateTo(Config.Profile(userID))
+    fun navigateToProfile() {
+        navigateTo(Config.Profile(userRepository.requireUserId()))
     }
 
     fun navigateToSearch() {
@@ -94,31 +86,23 @@ class MainComponent(
     fun navigateToChatList() {
         navigateTo(Config.ChatList)
     }
-
-    fun navigateToChat(chatId: String) {
-        navigateTo(Config.Chat(chatId))
-    }
 }
 
 // These need to be outside the inner class to be properly serializable
 @Serializable
 sealed class Config {
     @Serializable
-    data class Profile(val userID: Int? = null) : Config()
+    data class Profile(val userID: Int) : Config()
 
     @Serializable
     object Search : Config()
 
     @Serializable
     object ChatList : Config()
-
-    @Serializable
-    data class Chat(val chatId: String) : Config()
 }
 
 sealed class Child {
     data class Profile(val component: ProfileViewComponent) : Child()
     data class Search(val component: SearchComponent) : Child()
     data class ChatList(val component: ChatListComponent) : Child()
-    data class Chat(val component: ChatComponent) : Child()
 }

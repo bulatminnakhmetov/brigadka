@@ -1,5 +1,7 @@
 package com.brigadka.app.data.api.websocket
 
+import kotlinx.datetime.Instant
+import kotlinx.datetime.LocalDateTime
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -32,7 +34,7 @@ data class ChatMessage(
     @SerialName("content")
     val content: String,
     @SerialName("sent_at")
-    val sent_at: String? = null
+    val sent_at: Instant? = null
 ) : WebSocketMessage
 
 @Serializable

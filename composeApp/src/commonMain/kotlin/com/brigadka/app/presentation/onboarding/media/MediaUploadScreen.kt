@@ -23,6 +23,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.data.api.models.MediaItem
+import com.brigadka.app.presentation.common.FileType
 import com.brigadka.app.presentation.common.rememberFilePickerLauncher
 import com.brigadka.app.presentation.profile.common.Avatar
 import com.brigadka.app.presentation.profile.common.LoadableValue
@@ -33,7 +34,7 @@ fun MediaUploadScreen(component: MediaUploadComponent, onError : (String) -> Uni
     val profileData by component.profileState.subscribeAsState()
 
     val avatarPickerLauncher = rememberFilePickerLauncher(
-        fileType = "image/*",
+        fileType = FileType.IMAGE,
         onFilePicked = { bytes, fileName ->
             component.uploadAvatar(bytes, fileName)
         },
@@ -43,7 +44,7 @@ fun MediaUploadScreen(component: MediaUploadComponent, onError : (String) -> Uni
     )
 
     val videoPickerLauncher = rememberFilePickerLauncher(
-        fileType = "video/*",
+        fileType = FileType.VIDEO,
         onFilePicked = { bytes, fileName ->
             component.uploadVideo(bytes, fileName)
         },
@@ -56,7 +57,9 @@ fun MediaUploadScreen(component: MediaUploadComponent, onError : (String) -> Uni
         avatar = profileData.avatar,
         videos = profileData.videos,
         pickImage = { avatarPickerLauncher.launch() },
-        pickVideo = { videoPickerLauncher.launch() },
+        pickVideo = {
+            videoPickerLauncher.launch()
+                    },
         removeAvatar = { component.removeAvatar() },
         removeVideo = { component.removeVideo(it) },
         onBack = { component.back() },

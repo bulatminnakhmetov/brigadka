@@ -46,7 +46,6 @@ import com.brigadka.app.presentation.common.UIEventBus
 import com.brigadka.app.presentation.profile.edit.EditProfileTopBar
 import com.brigadka.app.presentation.profile.edit.EditProfileTopBarState
 import com.brigadka.app.presentation.profile.view.ProfileViewContent
-import com.brigadka.app.presentation.profile.view.ProfileViewScreen
 import com.brigadka.app.presentation.profile.view.ProfileViewTopBar
 import com.brigadka.app.presentation.profile.view.ProfileViewTopBarState
 import com.brigadka.app.presentation.search.SearchScreen
@@ -105,8 +104,6 @@ fun MainContent(component: MainComponent) {
                         SearchScreen(instance.component)
                     is Child.ChatList ->
                         ChatListContent(instance.component)
-                    is Child.Chat ->
-                        ChatContent(instance.component)
                     else -> {}
                 }
             }
