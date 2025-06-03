@@ -248,6 +248,11 @@ class SearchComponent(
         navigation.pushNew(SearchConfig.Profile(userId))
     }
 
+    fun applyFilters() {
+        _state.update { it.copy(showFilters = false)}
+        performSearch()
+    }
+
     fun resetFilters() {
         _state.update {
             SearchState(

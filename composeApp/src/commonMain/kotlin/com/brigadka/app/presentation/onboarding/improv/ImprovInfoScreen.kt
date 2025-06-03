@@ -179,7 +179,12 @@ fun ImprovInfoScreen(
         )
 
         if (improvGoals.isNotEmpty()) {
-            ChipsPicker(improvGoals, listOfNotNull(state.goal), updateGoal, Modifier.fillMaxWidth())
+            ChipsPicker(
+                items = improvGoals,
+                selected = listOfNotNull(state.goal),
+                onClick = updateGoal,
+                modifier = Modifier.fillMaxWidth()
+            )
         } else {
             CircularProgressIndicator(modifier = Modifier.size(24.dp))
         }
@@ -192,7 +197,12 @@ fun ImprovInfoScreen(
         )
 
         if (improvStyles.isNotEmpty()) {
-            ChipsPicker(improvStyles, state.improvStyles, toggleStyle, Modifier.fillMaxWidth())
+            ChipsPicker(
+                items = improvStyles,
+                selected = state.improvStyles,
+                onClick = toggleStyle,
+                modifier = Modifier.fillMaxWidth()
+            )
         } else {
             CircularProgressIndicator(modifier = Modifier.size(24.dp))
         }

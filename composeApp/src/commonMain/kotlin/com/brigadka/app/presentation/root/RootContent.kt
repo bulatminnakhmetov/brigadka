@@ -17,6 +17,7 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
 import com.arkivanov.decompose.extensions.compose.stack.animation.scale
+import com.arkivanov.decompose.extensions.compose.stack.animation.slide
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.presentation.AppTheme
@@ -35,7 +36,7 @@ fun RootContent(component: RootComponent, modifier: Modifier) {
         Column(modifier = modifier) {
             Children(
                 stack = childStack,
-                animation = stackAnimation(fade() + scale())
+                animation = stackAnimation(fade() + slide())
             ) { child ->
                 when (val instance = child.instance) {
                     is RootComponent.Child.Auth -> AuthContent(instance.component)

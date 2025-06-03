@@ -40,7 +40,7 @@ fun SearchProfileCardPreview() {
 
 }
 
-@Preview
+@Preview(heightDp = 1000)
 @Composable
 fun SearchScreenPreviewWithFilters() {
     AppTheme {

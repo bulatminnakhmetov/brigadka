@@ -13,13 +13,14 @@ import com.brigadka.app.data.api.models.StringItem
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ChipsPicker(items: List<StringItem>, selected: List<String>, onClick: (String) -> Unit, modifier: Modifier = Modifier){
+fun ChipsPicker(items: List<StringItem>, selected: List<String>, onClick: (String) -> Unit, onlySelected: Boolean = false, modifier: Modifier = Modifier){
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         items.forEach { style ->
+            if (onlySelected && style.code !in selected) return@forEach
             FilterChip(
                 selected = style.code in selected,
                 onClick = { onClick(style.code) },

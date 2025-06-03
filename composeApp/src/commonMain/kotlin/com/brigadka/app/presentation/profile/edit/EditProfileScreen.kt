@@ -189,7 +189,11 @@ fun EditProfileScreen(
             ) {
                 Text(LocalStrings.current.gender)
 
-                ChipsPicker(genders, listOfNotNull(profileState.gender), updateGender)
+                ChipsPicker(
+                    items = genders,
+                    selected = listOfNotNull(profileState.gender),
+                    onClick = updateGender
+                )
             }
         }
 
@@ -238,7 +242,12 @@ fun EditProfileScreen(
         )
 
         if (improvGoals.isNotEmpty()) {
-            ChipsPicker(improvGoals, listOfNotNull(profileState.goal), updateGoal, Modifier.fillMaxWidth())
+            ChipsPicker(
+                items = improvGoals,
+                selected = listOfNotNull(profileState.goal),
+                onClick = updateGoal,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         Text(
@@ -247,7 +256,12 @@ fun EditProfileScreen(
         )
 
         if (improvStyles.isNotEmpty()) {
-            ChipsPicker(improvStyles, profileState.improvStyles, toggleStyle, Modifier.fillMaxWidth())
+            ChipsPicker(
+                items = improvStyles,
+                selected = profileState.improvStyles,
+                onClick = toggleStyle,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
 
         Spacer(modifier = Modifier.height(4.dp))

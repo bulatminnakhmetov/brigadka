@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -18,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.arkivanov.decompose.extensions.compose.stack.animation.slide
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.presentation.chat.conversation.ChatContent
@@ -29,7 +31,7 @@ fun ChatListContent(component: ChatListComponent) {
 
     Children(
         stack = childStack,
-        animation = stackAnimation(fade() + com.arkivanov.decompose.extensions.compose.stack.animation.scale())
+        animation = stackAnimation(fade() + slide())
     ) { child ->
         when (val instance = child.instance) {
             is ChatListComponent.Child.ChatList -> {
@@ -126,7 +128,6 @@ fun ChatListContent(
                             onClick = { onChatClick(chat.chatId, chat.userID) },
                             onError = onError
                         )
-                        HorizontalDivider()
                     }
                 }
             }

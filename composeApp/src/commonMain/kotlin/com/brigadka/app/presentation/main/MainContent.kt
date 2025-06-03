@@ -1,8 +1,18 @@
 package com.brigadka.app.presentation.main
 
 import MainComponent
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalAnimationApi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideIn
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.with
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
@@ -13,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -34,6 +45,7 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.scale
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
+import com.arkivanov.decompose.extensions.compose.stack.animation.slide
 import com.brigadka.app.presentation.chat.conversation.ChatContent
 import com.brigadka.app.presentation.chat.conversation.ChatTopBar
 import com.brigadka.app.presentation.chat.conversation.ChatTopBarState
@@ -53,6 +65,7 @@ import com.brigadka.app.presentation.search.SearchTopBar
 import com.brigadka.app.presentation.search.SearchTopBarState
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun MainContent(component: MainComponent) {
     val childStack by component.childStack.subscribeAsState()
@@ -95,7 +108,7 @@ fun MainContent(component: MainComponent) {
         content = {
             Children(
                 stack = childStack,
-                animation = stackAnimation(fade() + scale()),
+                animation = stackAnimation(fade() + slide()),
             ) { child ->
                 when (val instance = child.instance) {
                     is Child.Profile ->

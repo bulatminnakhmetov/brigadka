@@ -25,6 +25,7 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
 import com.arkivanov.decompose.extensions.compose.stack.animation.scale
+import com.arkivanov.decompose.extensions.compose.stack.animation.slide
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.brigadka.app.data.api.models.MediaItem
@@ -43,7 +44,7 @@ fun ProfileViewContent(component: ProfileViewComponent) {
 
     Children(
         stack = childStack,
-        animation = stackAnimation(fade() + scale())
+        animation = stackAnimation(fade() + slide())
     ) { child ->
         when (val instance = child.instance) {
             is ProfileViewComponent.Child.Profile -> {

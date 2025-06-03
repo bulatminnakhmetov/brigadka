@@ -1,5 +1,6 @@
 package com.brigadka.app.presentation.search
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -27,6 +28,7 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.plus
 import com.arkivanov.decompose.extensions.compose.stack.animation.scale
+import com.arkivanov.decompose.extensions.compose.stack.animation.slide
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.brigadka.app.data.repository.ProfileView
 import com.brigadka.app.presentation.profile.common.Avatar
@@ -46,7 +48,7 @@ fun SearchScreen(component: SearchComponent) {
 
     Children(
         stack = childStack,
-        animation = stackAnimation(fade() + scale()),
+        animation = stackAnimation(fade() + slide()),
     ) { child ->
         when (val instance = child.instance) {
             is SearchChild.SearchPage -> {
@@ -68,6 +70,7 @@ fun SearchScreen(component: SearchComponent) {
                     onToggleHasAvatar = component::toggleHasAvatar,
                     onToggleHasVideo = component::toggleHasVideo,
                     onResetFilters = component::resetFilters,
+                    onApplyFilters = component::applyFilters,
                     onNextPage = component::nextPage,
                     onProfileClick = component::onProfileClick,
                     onRefresh = component::performSearch
@@ -91,13 +94,14 @@ fun SearchScreen(
     onToggleLookingForTeam: (Boolean) -> Unit,
     onToggleHasAvatar: (Boolean) -> Unit,
     onToggleHasVideo: (Boolean) -> Unit,
+    onApplyFilters: () -> Unit,
     onResetFilters: () -> Unit,
     onNextPage: () -> Unit,
     onProfileClick: (Int) -> Unit,
     onRefresh: () -> Unit
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
-        if (showFilters) {
+        AnimatedVisibility (showFilters) {
             SearchFilters(
                 state = state,
                 onAgeRangeChange = onUpdateAgeRange,
@@ -108,7 +112,8 @@ fun SearchScreen(
                 onLookingForTeamToggle = onToggleLookingForTeam,
                 onHasAvatarToggle = onToggleHasAvatar,
                 onHasVideoToggle = onToggleHasVideo,
-                onReset = onResetFilters,
+                onApply = onApplyFilters,
+                onReset = onResetFilters
             )
         }
 
@@ -271,7 +276,8 @@ fun SearchFilters(
     onLookingForTeamToggle: (Boolean) -> Unit,
     onHasAvatarToggle: (Boolean) -> Unit,
     onHasVideoToggle: (Boolean) -> Unit,
-    onReset: () -> Unit
+    onReset: () -> Unit,
+    onApply: () -> Unit,
 ) {
     var minAgeText by remember { mutableStateOf(state.minAgeFilter?.toString() ?: "") }
     var maxAgeText by remember { mutableStateOf(state.maxAgeFilter?.toString() ?: "") }
@@ -373,19 +379,34 @@ fun SearchFilters(
         BooleanFilter(LocalStrings.current.withPhoto, state.hasAvatarFilter, onHasAvatarToggle)
         BooleanFilter(LocalStrings.current.withVideo, state.hasVideoFilter, onHasVideoToggle)
 
-        // Reset button
-        Button(
-            onClick = onReset,
-            modifier = Modifier
-                .align(Alignment.End)
-                .padding(top = 16.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-        ) {
-            Text("Сбросить")
+
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Button(
+                onClick = onApply,
+                modifier = Modifier
+                    .padding(top = 16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+            ) {
+                Text("Применить")
+            }
+            // Reset button
+            Button(
+                onClick = onReset,
+                modifier = Modifier
+                    .padding(top = 16.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+            ) {
+                Text("Сбросить")
+            }
         }
+
+
     }
 }
 
@@ -636,6 +657,7 @@ fun SearchScreenPreview(showFilters: Boolean) {
         onResetFilters = { },
         onNextPage = { },
         onProfileClick = { },
-        onRefresh = { }
+        onRefresh = { },
+        onApplyFilters = {}
     )
 }

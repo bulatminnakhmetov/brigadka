@@ -30,7 +30,7 @@ class MainComponent(
     private val mainNavigation = StackNavigation<Config>()
     private val mainStack = childStack(
         source = mainNavigation,
-        initialConfiguration = Config.Search,
+        initialConfiguration = Config.Profile(userRepository.requireUserId()),
         serializer = Config.serializer(),
         handleBackButton = true,
         childFactory = ::createChild
